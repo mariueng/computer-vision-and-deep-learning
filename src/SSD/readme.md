@@ -15,6 +15,13 @@ Then, install specific packages with
 pip install -r requirements.txt
 ```
 
+### Macos arm
+
+If you are experiencing trouble when installing pycocotools, then the following command should work on Mac m1:
+
+```
+CC=clang CXX=clang++ CFLAGS='-stdlib=libc++' LDFLAGS='-L/usr/local/lib -lomp' pip install pycocotools==2.0.0  
+```
 
 ## Dataset exploration 
 We have provided some boilerplate code for getting you started with dataset exploration. It can be found in `dataset_exploration/analyze_stuff.py`. We recommend making multiple copies of this file for different parts of your data exploration.
