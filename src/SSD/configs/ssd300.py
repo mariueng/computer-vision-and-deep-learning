@@ -41,15 +41,22 @@ backbone = L(backbones.BasicModel)(
     output_feature_sizes="${anchors.feature_sizes}"
 )
 
-anchors = "${anchors}"
+# anchors_arg = "${anchors}"
 
-loss_objective = L(SSDMultiboxLoss)(anchors=anchors)
+# loss_objective = L(SSDMultiboxLoss)(anchors=anchors_arg)
+
+# model = L(SSD300)(
+#     feature_extractor="${backbone}",
+#     anchors=anchors,
+#     loss_objective="${loss_objective}",
+#     num_classes=10 + 1  # Add 1 for background
+# )
 
 model = L(SSD300)(
-    feature_extractor="${backbone}",
+    feature_extractor=backbone,
     anchors=anchors,
-    loss_objective="${loss_objective}",
-    num_classes=10 + 1  # Add 1 for background
+    loss_objective=SSDMultiboxLoss,
+    num_classes=10 + 1 # Add 1 for background
 )
 
 optimizer = L(torch.optim.SGD)(
