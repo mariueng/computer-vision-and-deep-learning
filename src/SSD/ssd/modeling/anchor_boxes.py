@@ -32,7 +32,7 @@ class AnchorBoxes(object):
 
         anchors = []
         # size of feature and number of feature
-        for fidx, [fH, fW] in enumerate(feature_sizes):
+        for fidx, [f_h, f_w] in enumerate(feature_sizes):
             bbox_sizes = []
             h_min = min_sizes[fidx][0] / image_shape[0]
             w_min = min_sizes[fidx][1] / image_shape[1]
@@ -48,8 +48,8 @@ class AnchorBoxes(object):
             scale_y = image_shape[0] / strides[fidx][0]
             scale_x = image_shape[1] / strides[fidx][1]
             for w, h in bbox_sizes:
-                for i in range(fH):
-                    for j in range(fW):
+                for i in range(f_h):
+                    for j in range(f_w):
                         cx = (j + 0.5)/scale_x
                         cy = (i + 0.5)/scale_y
                         anchors.append((cx, cy, w, h))

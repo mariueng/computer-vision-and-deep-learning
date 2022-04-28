@@ -41,11 +41,13 @@ backbone = L(backbones.BasicModel)(
     output_feature_sizes="${anchors.feature_sizes}"
 )
 
-loss_objective = L(SSDMultiboxLoss)(anchors="${anchors}")
+anchors = "${anchors}"
+
+loss_objective = L(SSDMultiboxLoss)(anchors=anchors)
 
 model = L(SSD300)(
     feature_extractor="${backbone}",
-    anchors="${anchors}",
+    anchors=anchors,
     loss_objective="${loss_objective}",
     num_classes=10 + 1  # Add 1 for background
 )
@@ -67,7 +69,7 @@ data_train = dict(
         transform=L(torchvision.transforms.Compose)(transforms=[
             L(ToTensor)(),  # ToTensor has to be applied before conversion to anchors.
             # GroundTruthBoxesToAnchors assigns each ground truth to anchors, required to compute loss in training.
-            L(GroundTruthBoxesToAnchors)(anchors="${anchors}", iou_threshold=0.5),
+            L(GroundTruthBoxesToAnchors)(anchors=anchors, iou_threshold=0.5),
         ])
     ),
     dataloader=L(torch.utils.data.DataLoader)(

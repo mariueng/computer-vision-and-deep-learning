@@ -121,7 +121,6 @@ def get_all_box_matches(prediction_boxes, gt_boxes, iou_threshold):
             seen_gt_boxes[gt_idx] = 1
 
     return np.array(final_prediction_boxes), np.array(final_gt_boxes)
-    return np.array([]), np.array([])
 
 
 def calculate_individual_image_result(prediction_boxes, gt_boxes, iou_threshold):

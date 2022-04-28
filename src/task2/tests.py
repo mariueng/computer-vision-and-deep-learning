@@ -1,6 +1,7 @@
-from task2 import *
+from task2 import calculate_iou, calculate_recall, calculate_precision, calculate_mean_average_precision, get_all_box_matches, calculate_individual_image_result, calculate_precision_recall_all_images, get_precision_recall_curve
 import numpy as np
 
+assert_str = "Expected {}, got: {}"
 
 def test_iou():
     print("="*80)
@@ -10,43 +11,43 @@ def test_iou():
 
     res = calculate_iou(b1, b2)
     ans = 0
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
     b1 = np.array([2, 1, 4, 3])
     b2 = np.array([1, 2, 3, 4])
 
     res = calculate_iou(b1, b2)
     ans = 1/7
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
     b1 = np.array([0, 0, 1, 1])
     b2 = np.array([0, 0, 1, 1])
     res = calculate_iou(b1, b2)
     ans = 1.0
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
     b1 = np.array([0, 0, 1, 1])
     b2 = np.array([0.5, 0.5, 1, 1])
     res = calculate_iou(b1, b2)
     ans = 0.25
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
     b1 = np.array([5.5, 5.5, 8, 8])
     b2 = np.array([5.5, 3, 8, 4])
     res = calculate_iou(b1, b2)
     ans = 0.0
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
     b1 = np.array([5.5, 5.5, 8, 8])
     b2 = np.array([3, 5.5, 4, 9])
     res = calculate_iou(b1, b2)
     ans = 0.0
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
     b1 = np.array([522, 540, 576, 660])
     b2 = np.array([520, 540, 570, 655])
     res = round(calculate_iou(b1, b2), 5)
     ans = 0.82265
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
 
 def test_precision():
@@ -54,11 +55,11 @@ def test_precision():
     print("Running tests for calculate_precision")
     ans = 1
     res = calculate_precision(0, 0, 0)
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
     res = calculate_precision(10, 20, 0)
     ans = 1/3
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
 
 def test_recall():
@@ -66,11 +67,11 @@ def test_recall():
     print("Running tests for calculate_recall")
     ans = 0
     res = calculate_recall(0, 0, 0)
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
     res = calculate_recall(10, 0, 30)
     ans = 1/4
-    assert res == ans, "Expected {}, got: {}".format(ans, res)
+    assert res == ans, assert_str.format(ans, res)
 
 
 def test_get_all_box_matches():
@@ -132,11 +133,11 @@ def test_calculate_individual_image_result():
     ans3 = 2
     res = calculate_individual_image_result(b1, b2, 0.5)
 
-    assert res["true_pos"] == ans1, "Expected {}, got: {}".format(
+    assert res["true_pos"] == ans1, assert_str.format(
         ans1, res["true_pos"])
-    assert res["false_pos"] == ans2, "Expected {}, got: {}".format(
+    assert res["false_pos"] == ans2, assert_str.format(
         ans2, res["false_pos"])
-    assert res["false_neg"] == ans3, "Expected {}, got: {}".format(
+    assert res["false_neg"] == ans3, assert_str.format(
         ans3, res["false_neg"])
 
 
@@ -160,8 +161,8 @@ def test_calculate_precision_recall_all_images():
     ans1 = 6/8
     ans2 = 6/8
     res1, res2 = calculate_precision_recall_all_images([b1, b2], [b2, b2], 0.5)
-    assert res1 == ans1, "Expected {}, got: {}".format(ans1, res1)
-    assert res2 == ans2, "Expected {}, got: {}".format(ans2, res2)
+    assert res1 == ans1, assert_str.format(ans1, res1)
+    assert res2 == ans2, assert_str.format(ans2, res2)
 
 
 def test_get_precision_recall_curve():
@@ -185,8 +186,8 @@ def test_get_precision_recall_curve():
     res1, res2 = get_precision_recall_curve([b1, b2], [b2, b2], [s, s], 0.5)
     res1 = int(res1.sum())
     res2 = int(res2.sum())
-    assert res1 == ans1, "Expected {}, got: {}".format(ans1, res1)
-    assert res2 == ans2, "Expected {}, got: {}".format(ans2, res2)
+    assert res1 == ans1, assert_str.format(ans1, res1)
+    assert res2 == ans2, assert_str.format(ans2, res2)
 
 
 def test_mean_average_precision():
@@ -199,7 +200,7 @@ def test_mean_average_precision():
 
     res1 = calculate_mean_average_precision(p, r)
     ans1 = 0.89598
-    assert round(res1, 5) == ans1, "Expected {}, got: {}".format(ans1, res1)
+    assert round(res1, 5) == ans1, assert_str.format(ans1, res1)
 
 
 if __name__ == "__main__":
