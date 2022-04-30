@@ -11,7 +11,7 @@ In this course, all code is written in python. One of the following resources ar
 
 ## Project Structure
 
-The project structure can be seen below. The main code is found in the [src](src)-folder. For more information on the code in SSD, see [this](src/readme.md).
+The project structure can be seen below. The main code can be found in the `SSD`-folder, see [this](SSD/readme.md) fore more information.
 
 ```
 ├── env-setup
