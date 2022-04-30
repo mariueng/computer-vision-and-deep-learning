@@ -3,9 +3,10 @@
 This is the repository for the final project in TDT4265. This repository was originally written by [Håkon Hukkelas](https://www.ntnu.edu/employees/hakon.hukkelas) with current additions by [Mamoona Birkhez Shami](https://www.ntnu.edu/employees/mamoona.b.shami).
 
 ### Setting up your environment
-In this course, all assignments are given in python. You can do the assignments on the following resources:
+In this course, all code is written in python. One of the following resources are available
 
-- Your own computer: Follow our [python setup instructions](python_setup_instructions.md) to setup your own environment
+- Your own computer: Follow [python setup instructions](env-setup/python_setup_instructions.md) to setup your own environment
+- Cybele Lab: Follow [python setup instructions](env-setup/working_on_cybele_computers.md) to use the cybele environment
 
 
 ## Project Structure
@@ -14,16 +15,15 @@ The project structure can be seen below. The main code is found in the [src](src
 
 ```
 ├── env-setup
-├── src
-│   ├── SSD
-│   │   ├── configs
-│   │   ├── dataset_exploration
-│   │   ├── notebooks
-│   │   ├── performance_assessment
-│   │   ├── scripts
-│   │   ├── ssd
-│   │   ├── tops
-│   │   └── tutorials
+├── SSD
+│   ├── configs
+│   ├── dataset_exploration
+│   ├── notebooks
+│   ├── performance_assessment
+│   ├── scripts
+│   ├── ssd
+│   ├── tops
+│   ├── tutorials
 │   └── readme.md
 ├── .gitignore
 └── README.md
