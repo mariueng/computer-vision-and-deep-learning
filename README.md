@@ -7,3 +7,24 @@ In this course, all assignments are given in python. You can do the assignments 
 
 - Your own computer: Follow our [python setup instructions](python_setup_instructions.md) to setup your own environment
 
+
+## Project Structure
+
+The project structure can be seen below. The main code is found in the [src](src)-folder. For more information on the code in SSD, see [this](src/readme.md).
+
+```
+├── env-setup
+├── src
+│   ├── SSD
+│   │   ├── configs
+│   │   ├── dataset_exploration
+│   │   ├── notebooks
+│   │   ├── performance_assessment
+│   │   ├── scripts
+│   │   ├── ssd
+│   │   ├── tops
+│   │   └── tutorials
+│   └── readme.md
+├── .gitignore
+└── README.md
+```
