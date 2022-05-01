@@ -1,5 +1,8 @@
 import torch
 import matplotlib.pyplot as plt
+from pathlib import Path
+import os
+import click
 
 from tops.config import instantiate, LazyConfig
 from ssd import utils
@@ -12,8 +15,8 @@ def get_config(config_path):
     return cfg
 
 
-def get_dataloader(cfg, dataset_to_visualize):
-    if dataset_to_visualize == "train":
+def get_dataloader(cfg, dataset_to_analyze):
+    if dataset_to_analyze == "train":
         # Remove GroundTruthBoxesToAnchors transform
         cfg.data_train.dataset.transform.transforms = cfg.data_train.dataset.transform.transforms[:-1]
         data_loader = instantiate(cfg.data_train.dataloader)
@@ -28,7 +31,7 @@ def analyze_something(dataloader, cfg):
     for batch in tqdm(dataloader):
         # Remove the two lines below and start analyzing :D
         print("The keys in the batch are:", batch.keys())
-        # exit()
+        exit()
 
 
 def statistics(dataloader, cfg):
@@ -74,19 +77,21 @@ def plot_and_save_single_image(tensor, plot=False, save=False):
     if save:
         pass
 
-
-
-def main():
-    config_path = "configs/tdt4265.py"
+@click.command()
+@click.argument("config_path", type=click.Path(exists=True))
+@click.argument("train", type=click.Choice(["train", "val"]))
+def main(config_path, train):
     cfg = get_config(config_path)
-    dataset_to_analyze = "train"  # or "val"
 
-    print("Label map is:", cfg.label_map)
+    if train == "train":
+        dataset_to_analyze = "train"
+    else:
+        print("The norm is to analayze the training dataset, and not the valuation dataset")
+        dataset_to_analyze = "val"
 
-    dataloader = get_dataloader(cfg, dataset_to_analyze)
-    analyze_something(dataloader, cfg)
+    dataloader = get_dataloader(cfg, dataset_to_analyze=dataset_to_analyze)
 
-    statistics(dataloader)
+    return cfg, dataloader
 
 
 if __name__ == '__main__':
