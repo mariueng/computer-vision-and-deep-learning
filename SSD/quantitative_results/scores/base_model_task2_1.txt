@@ -1,0 +1,26 @@
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.05603
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.14158
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.02484
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.01298
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.06769
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.14887
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.02044
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.06887
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.06887
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.01909
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.08740
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.16719
+---------------------------------------------------
+AP for class background is -1.0000 (No objects of this class in validation set)
+AP for class car is 0.2133 
+AP for class truck is -1.0000 (No objects of this class in validation set)
+AP for class bus is 0.0000 
+AP for class motorcycle is -1.0000 (No objects of this class in validation set)
+AP for class bicycle is -1.0000 (No objects of this class in validation set)
+AP for class scooter is -1.0000 (No objects of this class in validation set)
+AP for class person is 0.0106 
+AP for class rider is 0.0002
+---------------------------------------------------
+Runtime for image shape: [128, 1024]
+Total runtime: 42.13097286224365
+FPS: 2.3735506969414564

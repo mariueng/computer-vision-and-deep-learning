@@ -21,7 +21,7 @@ model.num_classes = 8 + 1  # Add 1 for background class
 #     seed=0,
 #     epochs=50,
 #     _output_dir=get_output_dir(),
-#     imshape=(300, 300),
+#     imshape=(128, 1024),
 #     image_channels=3
 # )
 

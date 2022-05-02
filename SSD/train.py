@@ -119,3 +119,6 @@ def train(config_path: Path, evaluate_only: bool):
 
 if __name__ == "__main__":
     train()
+    # TODO: try the following one time:
+    # import os
+    # os.system('say "your program has finished"')

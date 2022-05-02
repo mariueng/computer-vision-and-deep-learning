@@ -2,6 +2,7 @@ import torchvision
 import torch
 import numpy as np
 import random
+import cv2
 
 class ToTensor:
     def __call__(self, sample):
@@ -186,3 +187,190 @@ class Resize(torch.nn.Module):
     def forward(self, batch):
         batch["image"] = torchvision.transforms.functional.resize(batch["image"], self.imshape, antialias=True)
         return batch
+
+
+"""
+
+Implementation of methods and photometric distortion originally from https://github.com/lufficc/SSD
+
+"""
+
+
+class RandomSaturation(torch.nn.Module):
+    def __init__(self, lower=0.5, upper=1.5):
+        self.lower = lower
+        self.upper = upper
+        assert self.upper >= self.lower, "contrast upper must be >= lower."
+        assert self.lower >= 0, "contrast lower must be non-negative."
+
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            image[:, :, 1] *= random.uniform(self.lower, self.upper)
+
+        return image, boxes, labels
+
+
+class RandomHue(torch.nn.Module):
+    def __init__(self, delta=18.0):
+        assert delta >= 0.0 and delta <= 360.0
+        self.delta = delta
+
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            image[:, :, 0] += random.uniform(-self.delta, self.delta)
+            image[:, :, 0][image[:, :, 0] > 360.0] -= 360.0
+            image[:, :, 0][image[:, :, 0] < 0.0] += 360.0
+        return image, boxes, labels
+
+
+class RandomLightingNoise(torch.nn.Module):
+    def __init__(self):
+        self.perms = ((0, 1, 2), (0, 2, 1),
+                      (1, 0, 2), (1, 2, 0),
+                      (2, 0, 1), (2, 1, 0))
+
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            swap = self.perms[random.randint(len(self.perms))]
+            shuffle = SwapChannels(swap)  # shuffle channels
+            image = shuffle(image)
+        return image, boxes, labels
+
+
+class RandomContrast(torch.nn.Module):
+    def __init__(self, lower=0.5, upper=1.5):
+        self.lower = lower
+        self.upper = upper
+        assert self.upper >= self.lower, "contrast upper must be >= lower."
+        assert self.lower >= 0, "contrast lower must be non-negative."
+
+    # expects float image
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            alpha = random.uniform(self.lower, self.upper)
+            image *= alpha
+        return image, boxes, labels
+
+
+class RandomBrightness(torch.nn.Module):
+    def __init__(self, delta=32):
+        assert delta >= 0.0
+        assert delta <= 255.0
+        self.delta = delta
+
+    def __call__(self, image, boxes=None, labels=None):
+        if random.randint(2):
+            delta = random.uniform(-self.delta, self.delta)
+            image += delta
+        return image, boxes, labels
+
+
+class ConvertColor(torch.nn.Module):
+    def __init__(self, current, transform):
+        self.transform = transform
+        self.current = current
+
+    def __call__(self, image, boxes=None, labels=None):
+        if self.current == 'BGR' and self.transform == 'HSV':
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        elif self.current == 'RGB' and self.transform == 'HSV':
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        elif self.current == 'BGR' and self.transform == 'RGB':
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        elif self.current == 'HSV' and self.transform == 'BGR':
+            image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
+        elif self.current == 'HSV' and self.transform == "RGB":
+            image = cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
+        else:
+            raise NotImplementedError
+        return image, boxes, labels
+
+
+def remove_empty_boxes(boxes, labels):
+    """Removes bounding boxes of W or H equal to 0 and its labels
+    Args:
+        boxes   (ndarray): NP Array with bounding boxes as lines
+                           * BBOX[x1, y1, x2, y2]
+        labels  (labels): Corresponding labels with boxes
+    Returns:
+        ndarray: Valid bounding boxes
+        ndarray: Corresponding labels
+    """
+    del_boxes = []
+    for idx, box in enumerate(boxes):
+        if box[0] == box[2] or box[1] == box[3]:
+            del_boxes.append(idx)
+
+    return np.delete(boxes, del_boxes, 0), np.delete(labels, del_boxes)
+
+
+class Compose(torch.nn.Module):
+    """Composes several augmentations together.
+    Args:
+        transforms (List[Transform]): list of transforms to compose.
+    Example:
+        >>> augmentations.Compose([
+        >>>     transforms.CenterCrop(10),
+        >>>     transforms.ToTensor(),
+        >>> ])
+    """
+
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, img, boxes=None, labels=None):
+        for t in self.transforms:
+            img, boxes, labels = t(img, boxes, labels)
+            if boxes is not None:
+                boxes, labels = remove_empty_boxes(boxes, labels)
+        return img, boxes, labels
+
+
+class SwapChannels(torch.nn.Module):
+    """Transforms a tensorized image by swapping the channels in the order
+     specified in the swap tuple.
+    Args:
+        swaps (int triple): final order of channels
+            eg: (2, 1, 0)
+    """
+
+    def __init__(self, swaps):
+        self.swaps = swaps
+
+    def __call__(self, image):
+        """
+        Args:
+            image (Tensor): image tensor to be transformed
+        Return:
+            a tensor with channels swapped according to swap
+        """
+        # if torch.is_tensor(image):
+        #     image = image.data.cpu().numpy()
+        # else:
+        #     image = np.array(image)
+        image = image[:, :, self.swaps]
+        return image
+
+
+class PhotometricDistort(torch.nn.Module):
+    def __init__(self):
+        self.pd = [
+            RandomContrast(),  # RGB
+            ConvertColor(current="RGB", transform='HSV'),  # HSV
+            RandomSaturation(),  # HSV
+            RandomHue(),  # HSV
+            ConvertColor(current='HSV', transform='RGB'),  # RGB
+            RandomContrast()  # RGB
+        ]
+        self.rand_brightness = RandomBrightness()
+        self.rand_light_noise = RandomLightingNoise()
+
+    def __call__(self, image, boxes, labels):
+        im = image.copy()
+        im, boxes, labels = self.rand_brightness(im, boxes, labels)
+        if random.randint(2):
+            distort = Compose(self.pd[:-1])
+        else:
+            distort = Compose(self.pd[1:])
+        im, boxes, labels = distort(im, boxes, labels)
+        return self.rand_light_noise(im, boxes, labels)

@@ -48,7 +48,6 @@ def calculate_precision(num_tp, num_fp, num_fn):
     if (num_tp + num_fp) == 0:
         return 1
     return num_tp / (num_fp + num_tp)
-    raise NotImplementedError
 
 
 def calculate_recall(num_tp, num_fp, num_fn):
@@ -65,7 +64,20 @@ def calculate_recall(num_tp, num_fp, num_fn):
     if denominator == 0:
         return 0
     return num_tp / denominator
-    raise NotImplementedError
+
+
+def calculate_f_score(precision, recall):
+    """ Calculates the f1 score of the given parameters.
+        Returns 0 if precision + recall = 0
+    Args:
+        precision (float): value of precision
+        recall (float): value of recall
+    Returns:
+        float: value of f1 score
+    """
+    if precision + recall == 0:
+        return 0
+    return 2 * precision * recall / (precision + recall)
 
 
 def get_all_box_matches(prediction_boxes, gt_boxes, iou_threshold):
