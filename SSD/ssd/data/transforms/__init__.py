@@ -1,3 +1,4 @@
-from .transform import  ToTensor, RandomSampleCrop, RandomHorizontalFlip, Resize, PhotometricDistort
+from .transform import  ToTensor, RandomSampleCrop, RandomHorizontalFlip, Resize
 from .target_transform import GroundTruthBoxesToAnchors
 from .gpu_transforms import Normalize, ColorJitter
+from .augmentations import PhotometricDistort, RandomMirror

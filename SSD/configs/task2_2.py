@@ -20,6 +20,9 @@ from ssd.data.transforms import (
     GroundTruthBoxesToAnchors,
     RandomHorizontalFlip,
     RandomSampleCrop,
+)
+from ssd.data.transforms import (
+    RandomMirror,
     PhotometricDistort
 )
 from tops.config import LazyCall as L
@@ -30,12 +33,15 @@ import torchvision
 # New transformations added:
 # * Random horizontal flip
 # * Random sample crop
+# * Random mirror
+# * Photometric distort
 train_cpu_transform = L(torchvision.transforms.Compose)(transforms=[
     L(RandomSampleCrop)(),
     L(ToTensor)(),
     L(Resize)(imshape="${train.imshape}"),
     L(GroundTruthBoxesToAnchors)(anchors="${anchors}", iou_threshold=0.5),
     L(RandomHorizontalFlip)(),
+    L(RandomMirror)(),
     L(PhotometricDistort)(),
 ])
 
