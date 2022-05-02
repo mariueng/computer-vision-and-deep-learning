@@ -5,7 +5,8 @@ from ssd.data.transforms import (
     ToTensor, Resize,
     GroundTruthBoxesToAnchors,
     RandomHorizontalFlip,
-    RandomSampleCrop
+    RandomSampleCrop,
+    PhotometricDistort
 )
 
 # New transformations added:
@@ -17,6 +18,7 @@ train_cpu_transform = L(torchvision.transforms.Compose)(transforms=[
     L(Resize)(imshape="${train.imshape}"),
     L(GroundTruthBoxesToAnchors)(anchors="${anchors}", iou_threshold=0.5),
     L(RandomHorizontalFlip)(),
+    L(PhotometricDistort)(),
 ])
 
 data_train.dataset = L(TDT4265Dataset)(
