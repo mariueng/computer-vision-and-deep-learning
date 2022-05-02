@@ -22,7 +22,6 @@ from ssd.data.transforms import (
     RandomSampleCrop,
 )
 from ssd.data.transforms import (
-    RandomMirror,
     PhotometricDistort
 )
 from tops.config import LazyCall as L
@@ -36,13 +35,12 @@ import torchvision
 # * Random mirror
 # * Photometric distort
 train_cpu_transform = L(torchvision.transforms.Compose)(transforms=[
-    L(RandomSampleCrop)(),
+    # L(RandomSampleCrop)(),
     L(ToTensor)(),
     L(Resize)(imshape="${train.imshape}"),
     L(GroundTruthBoxesToAnchors)(anchors="${anchors}", iou_threshold=0.5),
-    L(RandomHorizontalFlip)(),
-    L(RandomMirror)(),
-    L(PhotometricDistort)(),
+    # L(RandomHorizontalFlip)(),
+    # L(PhotometricDistort)(),
 ])
 
 data_train.dataset = L(TDT4265Dataset)(

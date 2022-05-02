@@ -12,30 +12,6 @@ Most methods are rewritten with a torch wrapper to match the samples in the data
 
 """
 
-class RandomMirror(torch.nn.Module):
-    """Mirror
-    Args:
-        sample dict containing at least the following:
-    Return:
-        the same sample dict with modified img and boxes
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def __call__(self, sample):
-        image = sample["image"]
-        boxes = sample["boxes"]
-        _, width, _ = image.shape
-        if random.randint(2):
-            image = image[:, ::-1]
-            boxes = boxes.copy()
-            boxes[:, 0::2] = width - boxes[:, 2::-2]
-            sample["image"] = image
-            sample["boxes"] = boxes
-        return sample
-
-
 class SwapChannels(torch.nn.Module):
     """Transforms a tensorized image by swapping the channels in the order
      specified in the swap tuple.
@@ -48,21 +24,19 @@ class SwapChannels(torch.nn.Module):
         super().__init__()
         self.swaps = swaps
 
-    def __call__(self, sample):
+    def __call__(self, image):
         """
         Args:
             image (Tensor): image tensor to be transformed
         Return:
             a tensor with channels swapped according to swap
         """
-        # if torch.is_tensor(image):
-        #     image = image.data.cpu().numpy()
-        # else:
-        #     image = np.array(image)
-        image = sample["image"]
+        if torch.is_tensor(image):
+            image = image.data.cpu().numpy()
         image = image[:, :, self.swaps]
-        sample["image"] = image
-        return sample
+        # TODO: Needs to output in the following format:
+        # [1, 3, 128, 1024] not torch.Size([1, 128, 1024, 3])
+        return image
 
     
 # The next two methods are applied outside the distort loop.
@@ -82,7 +56,7 @@ class RandomBrightness(torch.nn.Module):
         if random.randint(2):
             delta = random.uniform(-self.delta, self.delta)
             image += delta
-        sample["iamge"] = image
+        sample["image"] = image
         return sample
 
     
@@ -154,40 +128,32 @@ class RandomContrast(torch.nn.Module):
         return sample
 
 
-class ToCV2Image(torch.nn.Module):
-    """
-        Helper method to transform a image (tensor) into a numpy array
-    """
-    def __init__(self):
-        super().__init__()
-
-    def __call__(self, tensor):
-        return tensor.cpu().numpy().astype(np.float32).transpose((1, 2, 0))
-
-
 class ConvertColor(torch.nn.Module):
     def __init__(self, current, transform):
         super().__init__()
         self.transform = transform
         self.current = current
-        self.to_cv2 = ToCV2Image()
 
     def __call__(self, sample):
         image = sample["image"]
-        # image = self.to_cv2(image)
+
+        # Check if image is tensor, in case transform to ndarray
+        if torch.is_tensor(image):
+            image = image.cpu().numpy()
+
+        # Transpose ndarray shape for cv2 converter
+        image = image.astype(np.float32).transpose((1, 2, 0))
         if self.current == 'BGR' and self.transform == 'HSV':
             image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         elif self.current == 'RGB' and self.transform == 'HSV':
             image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-        elif self.current == 'BGR' and self.transform == 'RGB':
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        elif self.current == 'HSV' and self.transform == 'BGR':
-            image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
         elif self.current == 'HSV' and self.transform == "RGB":
             image = cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
         else:
             raise NotImplementedError
-        sample["image"] = image
+
+        # Transpose ndarray back to original shape
+        sample["image"] = image.transpose((2, 0, 1))
         return sample
 
 
@@ -228,7 +194,9 @@ class Compose(torch.nn.Module):
 class PhotometricDistort(torch.nn.Module):
     """Photometric distortion. Randomly change the brightness, contrast, saturation and hue of an image.
     Args:
-        sample: 
+        sample:
+    returns:
+        sample:
     """
     def __init__(self):
         super().__init__()
@@ -245,10 +213,11 @@ class PhotometricDistort(torch.nn.Module):
 
     def __call__(self, sample):
         smp = sample.copy()
-        smp = self.rand_brightness(smp)
+        # smp = self.rand_brightness(smp)
         if random.randint(2):
             distort = Compose(self.pd[:-1])
         else:
             distort = Compose(self.pd[1:])
         smp = distort(smp)
-        return self.rand_light_noise(smp)
+        # smp = self.rand_light_noise(smp)
+        return smp
