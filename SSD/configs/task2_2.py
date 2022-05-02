@@ -1,6 +1,20 @@
 # Inherit configs from task 2.1 (task2_1.py)
-from task2_1 import *
-
+from .task2_1 import (
+    train,
+    anchors,
+    optimizer,
+    schedulers,
+    loss_objective,
+    model,
+    backbone,
+    data_train,
+    data_val,
+    train_cpu_transform,
+    val_cpu_transform,
+    gpu_transform,
+    label_map
+)
+from ssd.data import TDT4265Dataset
 from ssd.data.transforms import (
     ToTensor, Resize,
     GroundTruthBoxesToAnchors,
@@ -8,6 +22,10 @@ from ssd.data.transforms import (
     RandomSampleCrop,
     PhotometricDistort
 )
+from tops.config import LazyCall as L
+from .utils import get_dataset_dir
+import torchvision
+
 
 # New transformations added:
 # * Random horizontal flip
