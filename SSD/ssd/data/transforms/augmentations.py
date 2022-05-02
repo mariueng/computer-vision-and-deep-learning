@@ -34,8 +34,6 @@ class SwapChannels(torch.nn.Module):
         if torch.is_tensor(image):
             image = image.data.cpu().numpy()
         image = image[:, :, self.swaps]
-        # TODO: Needs to output in the following format:
-        # [1, 3, 128, 1024] not torch.Size([1, 128, 1024, 3])
         return image
 
     

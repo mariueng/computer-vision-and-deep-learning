@@ -43,7 +43,7 @@ class RandomSampleCrop(torch.nn.Module):
     """Crop
     Implementation originally from: https://github.com/lufficc/SSD
 
-    NOTE: This function needs to be run before to_tensor
+    NOTE: This function needs to be run BEFORE to_tensor because it uses numpy logic.
     Arguments:
         sample dict containing at least the following:
         img (np.ndarray): the image being input during training
@@ -161,6 +161,17 @@ class RandomSampleCrop(torch.nn.Module):
 
 
 class RandomHorizontalFlip(torch.nn.Module):
+    """Horizontal flip
+    Implementation originally from: https://github.com/lufficc/SSD
+
+    NOTE: This function needs to be run AFTER to_tensor because it uses numpy logic.
+    Arguments:
+        sample dict containing at least the following:
+            img (torch.Tensor): the image being input during training
+            boxes (torch.Tensor): the original bounding boxes in pt form
+    Return:
+        the same sample dict with modified img, boxes and labels
+    """
 
     def __init__(self, p=0.5) -> None:
         super().__init__()
