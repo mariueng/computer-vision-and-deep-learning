@@ -9,6 +9,7 @@ class ToTensor:
         if "boxes" in sample:
             sample["boxes"] = torch.from_numpy(sample["boxes"])
             sample["labels"] = torch.from_numpy(sample["labels"])
+        #print(f'TT: {sample["image"].shape}')
         return sample
 
 
@@ -55,7 +56,7 @@ class RandomSampleCrop(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.sample_options = (
+        self.sample_options = np.array([
             # using entire original input image
             None,
             # sample a patch s.t. MIN jaccard w/ obj in .1,.3,.4,.7,.9
@@ -65,7 +66,7 @@ class RandomSampleCrop(torch.nn.Module):
             (0.9, None),
             # randomly sample a patch
             (None, None),
-        )
+        ], dtype=object)
 
     def __call__(self, sample):
         image = sample["image"]
@@ -157,6 +158,7 @@ class RandomSampleCrop(torch.nn.Module):
                 sample["image"] = current_image
                 sample["boxes"] = current_boxes
                 sample["labels"] = current_labels
+                #print(f'RSC: {current_image.shape}')
                 return sample
 
 
@@ -184,6 +186,7 @@ class RandomHorizontalFlip(torch.nn.Module):
             boxes = sample["boxes"]
             boxes[:, [0, 2]] = 1 - boxes[:, [2, 0]]
             sample["boxes"] = boxes
+        #print(f'RHF: {sample["image"].shape}')
         return sample
 
 
@@ -195,5 +198,7 @@ class Resize(torch.nn.Module):
 
     @torch.no_grad()
     def forward(self, batch):
+        #print(f'Before RS: {batch["image"].shape}')
         batch["image"] = torchvision.transforms.functional.resize(batch["image"], self.imshape, antialias=True)
+        #print(f'RS: {batch["image"].shape}')
         return batch

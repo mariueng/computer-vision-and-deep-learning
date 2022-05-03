@@ -52,8 +52,12 @@ class RandomBrightness(torch.nn.Module):
     def __call__(self, sample):
         image = sample["image"]
         if random.randint(2):
-            delta = random.uniform(-self.delta, self.delta)
-            image += delta
+            #delta = random.uniform(-self.delta, self.delta)
+            delta = np.uint8(random.uniform(-self.delta, self.delta))
+            #image += delta
+            image[:, :, 0] += delta
+            image[:, :, 1] += delta
+            image[:, :, 2] += delta
         sample["image"] = image
         return sample
 
@@ -87,7 +91,8 @@ class RandomSaturation(torch.nn.Module):
     def __call__(self, sample):
         image = sample["image"]
         if random.randint(2):
-            image[:, :, 1] *= random.uniform(self.lower, self.upper)
+            #image[:, :, 1] *= random.uniform(self.lower, self.upper)
+            image[:, :, 1] *= np.uint8(random.uniform(self.lower, self.upper))
         sample["image"] = image
         return sample
 
@@ -120,7 +125,8 @@ class RandomContrast(torch.nn.Module):
     def __call__(self, sample):
         image = sample["image"]
         if random.randint(2):
-            alpha = random.uniform(self.lower, self.upper)
+            #alpha = random.uniform(self.lower, self.upper)
+            alpha = np.uint8(random.uniform(self.lower, self.upper))
             image *= alpha
         sample["image"] = image
         return sample
@@ -139,38 +145,39 @@ class ConvertColor(torch.nn.Module):
         if torch.is_tensor(image):
             image = image.cpu().numpy()
 
+        #print(f'init: {image.shape}')
         # Transpose ndarray shape for cv2 converter
-        image = image.astype(np.float32).transpose((1, 2, 0))
-        if self.current == 'BGR' and self.transform == 'HSV':
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        elif self.current == 'RGB' and self.transform == 'HSV':
+        image = image.astype(np.float32).transpose((0, 1, 2))
+        #print(f'before cv2: {image.shape}')
+        if self.current == 'RGB' and self.transform == 'HSV':
             image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         elif self.current == 'HSV' and self.transform == "RGB":
             image = cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
         else:
             raise NotImplementedError
-
+        #print(f'After cv2: {image.shape}')
         # Transpose ndarray back to original shape
-        sample["image"] = image.transpose((2, 0, 1))
+        sample["image"] = image #.transpose((2, 0, 1))
+        #print(f'Final: {sample["image"].shape}')
         return sample
 
 
-# def remove_empty_boxes(boxes, labels):
-#     """Removes bounding boxes of W or H equal to 0 and its labels
-#     Args:
-#         boxes   (ndarray): NP Array with bounding boxes as lines
-#                            * BBOX[x1, y1, x2, y2]
-#         labels  (labels): Corresponding labels with boxes
-#     Returns:
-#         ndarray: Valid bounding boxes
-#         ndarray: Corresponding labels
-#     """
-#     del_boxes = []
-#     for idx, box in enumerate(boxes):
-#         if box[0] == box[2] or box[1] == box[3]:
-#             del_boxes.append(idx)
+def remove_empty_boxes(boxes, labels):
+    """Removes bounding boxes of W or H equal to 0 and its labels
+    Args:
+        boxes   (ndarray): NP Array with bounding boxes as lines
+                           * BBOX[x1, y1, x2, y2]
+        labels  (labels): Corresponding labels with boxes
+    Returns:
+        ndarray: Valid bounding boxes
+        ndarray: Corresponding labels
+    """
+    del_boxes = []
+    for idx, box in enumerate(boxes):
+        if box[0] == box[2] or box[1] == box[3]:
+            del_boxes.append(idx)
 
-#     return np.delete(boxes, del_boxes, 0), np.delete(labels, del_boxes)
+    return np.delete(boxes, del_boxes, 0), np.delete(labels, del_boxes)
 
 
 class Compose(torch.nn.Module):
@@ -186,6 +193,12 @@ class Compose(torch.nn.Module):
     def __call__(self, sample):
         for transform in self.transforms:
             sample = transform(sample)
+            boxes = sample["boxes"]
+            labels = sample["labels"]
+            if boxes is not None:
+                boxes, labels = remove_empty_boxes(boxes, labels)
+            sample["boxes"] = boxes
+            sample["labels"] = labels
         return sample
 
 
@@ -211,11 +224,12 @@ class PhotometricDistort(torch.nn.Module):
 
     def __call__(self, sample):
         smp = sample.copy()
-        # smp = self.rand_brightness(smp)
+        smp = self.rand_brightness(smp)
         if random.randint(2):
             distort = Compose(self.pd[:-1])
         else:
             distort = Compose(self.pd[1:])
         smp = distort(smp)
-        # smp = self.rand_light_noise(smp)
+        smp = self.rand_light_noise(smp)
+        #print(f'RD: {smp["image"].shape}')
         return smp
