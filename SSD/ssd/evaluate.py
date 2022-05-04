@@ -23,12 +23,12 @@ def silent_evaluation(eval_object):
     sys.stdout = old_stdout # reset old stdout
 
 
-def calculate_class_aps(coco_gt, coco_dt, label_map):
+def calculate_class_aps(cocoGt, cocoDt, label_map):
     out_stats = {}
 
     print("---------------------------------------------------")
     for index, class_name in label_map.items():
-        eval_object = COCOeval(coco_gt, coco_dt, iouType='bbox')
+        eval_object = COCOeval(cocoGt, cocoDt, iouType='bbox')
         eval_object.params.catIds = [index]
         silent_evaluation(eval_object)
 
@@ -51,7 +51,7 @@ def calculate_class_aps(coco_gt, coco_dt, label_map):
 def evaluate(
         model,
         dataloader: torch.utils.data.DataLoader,
-        coco_gt: COCO,
+        cocoGt: COCO,
         gpu_transform: torch.nn.Module,
         label_map):
     """
@@ -83,14 +83,14 @@ def evaluate(
     if final_results.shape[0] == 0:
         logger.log("WARNING! There were no predictions with score > 0.05. This indicates a bug in your code.")
         return dict()
-    coco_dt = coco_gt.loadRes(final_results)
-    E = COCOeval(coco_gt, coco_dt, iouType='bbox')
+    cocoDt = cocoGt.loadRes(final_results)
+    E = COCOeval(cocoGt, cocoDt, iouType='bbox')
     E.params.areaRng = [[0 ** 2, 1e5 ** 2], [0 ** 2, 16 ** 2], [16 ** 2, 32 ** 2], [32 ** 2, 1e5 ** 2]]
     E.evaluate()
     E.accumulate()
     E.summarize()
 
-    class_ap_stats = calculate_class_aps(coco_gt, coco_dt, label_map)
+    class_ap_stats = calculate_class_aps(cocoGt, cocoDt, label_map)
 
     stats_all_objects = {
         "mAP": E.stats[0], # same as mAP@
