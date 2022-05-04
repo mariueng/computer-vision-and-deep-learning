@@ -6,7 +6,6 @@ from os import PathLike
 
 def batch_collate(batch):
     elem = batch[0]
-    #print('-----------------------------------------')
     batch_ = {key: default_collate([d[key] for d in batch]) for key in elem}
     return batch_
 
