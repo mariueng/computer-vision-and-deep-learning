@@ -34,7 +34,7 @@ def run_demo(config_path: str, score_threshold: float, video_path: str, output_p
     video_length = int(reader.get(cv2.CAP_PROP_FRAME_COUNT))
 
     assert reader.isOpened()
-    for frame_idx in tqdm.trange(video_length, desc="Predicting on video"):
+    for _ in tqdm.trange(video_length, desc="Predicting on video"):
         ret, frame = reader.read()
         assert ret, "An error occurred"
         frame = np.ascontiguousarray(frame[:, :, ::-1])

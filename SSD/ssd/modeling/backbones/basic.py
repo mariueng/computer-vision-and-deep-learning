@@ -71,33 +71,31 @@ class BasicModel(torch.nn.Module):
         ])
 
     def forward(self, x):
-        """
-        The forward functiom should output features with shape:
-            [shape(-1, output_channels[0], 38, 38),
-            shape(-1, output_channels[1], 19, 19),
-            shape(-1, output_channels[2], 10, 10),
-            shape(-1, output_channels[3], 5, 5),
-            shape(-1, output_channels[3], 3, 3),
-            shape(-1, output_channels[4], 1, 1)]
-        We have added assertion tests to check this, iteration through out_features,
-        where out_features[0] should have the shape:
-            shape(-1, output_channels[0], 38, 38),
-        """
+        # Stores output features
         out_features = []
+
+        # Pass through the first layer
         x = self.feature_extractor(x)
         out_features.append(x)
+
+        # Pass through the additional layers
         for additional_layer in self.additional_layers.children():
             x = additional_layer(x)
             out_features.append(x)
+
+        # Check that the output features are correct
         for idx, feature in enumerate(out_features):
             out_channel = self.out_channels[idx]
             h, w = self.output_feature_shape[idx]
             expected_shape = (out_channel, h, w)
             assert feature.shape[1:] == expected_shape, \
                 f"Expected shape: {expected_shape}, got: {feature.shape[1:]} at output IDX: {idx}"
+
+        # Assert that the output features shape is correct
         assert len(out_features) == len(self.output_feature_shape),\
             f"Expected that the length of the outputted features to be: {len(self.output_feature_shape)}, but it was: {len(out_features)}"
-        #print(f'Type in basic: {type(out_features)}')
+
+        # Convert to tuple of tensors before returning for traceability
         return tuple(out_features)
 
 

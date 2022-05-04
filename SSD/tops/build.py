@@ -12,6 +12,11 @@ def init(
         checkpoint_dir: Optional[PathLike] = None
     ):
     """
+    Initialize the logger and checkpointer.
+    Args:
+        output_dir: directory to save logs and checkpoints
+        logging_backend: list of logging backends to use
+        checkpoint_dir: directory to save checkpoints
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)

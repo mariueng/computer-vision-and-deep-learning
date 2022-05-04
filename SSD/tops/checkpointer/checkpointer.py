@@ -82,6 +82,13 @@ def save_checkpoint(
 
 
 def has_checkpoint(checkpoint_dir: Optional[os.PathLike] = None) -> bool:
+    """
+    Check if there is a checkpoint in the checkpoint_dir.
+    Args:
+        checkpoint_dir: path to file or folder.
+    Returns:
+        True if there is a checkpoint, False otherwise.
+    """
     if checkpoint_dir is None:
         assert _checkpoint_dir is not None
         checkpoint_dir = _checkpoint_dir
@@ -91,6 +98,11 @@ def has_checkpoint(checkpoint_dir: Optional[os.PathLike] = None) -> bool:
 
 
 def register_models(models: dict):
+    """
+    Register model to be saved and loaded.
+    Args:
+        model: dict of model to be registered.
+    """
     global _models
     for key, model in models.items():
         if not hasattr(model, "state_dict"):

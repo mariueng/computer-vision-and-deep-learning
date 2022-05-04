@@ -21,6 +21,7 @@ _output_dir = None
 DEFAULT_SCALAR_LEVEL = DEBUG
 DEFAULT_LOG_LEVEL = INFO
 DEFAULT_LOGGER_LEVEL = INFO
+DEFAULT_GRAPH_LEVEL = INFO
 
 class Backend(ABC):
 
@@ -32,14 +33,33 @@ class Backend(ABC):
     def add_scalar(self, tag, value, **kwargs):
         pass
 
+    @abstractmethod
+    def add_graph(self, model, input_to_model):
+        """
+        Add model graph to the backend.
+        Args:
+            model: model to be added
+            input_to_model: input to the model (can be dummy data)
+        """
+        pass
+
     def add_dict(self, values, **kwargs):
         for tag, value in values.items():
             self.add_scalar(tag, value, **kwargs)
 
     def log(self, msg, level):
+        """
+        Log a message.
+        Args:
+            msg: message to be logged
+            level: logging level
+        """
         pass
 
     def finish(self):
+        """
+        Finish logging by closing IO streams, etc.
+        """
         pass
 
 
@@ -54,6 +74,10 @@ class TensorBoardBackend(Backend):
         self.writer.add_scalar(tag, value, new_style=True, global_step=_global_step)
 
 
+    def add_graph(self, model, input_to_model, **kwargs):
+        # Note: all must produce traceable outputs for this to work.
+        self.writer.add_graph(model, input_to_model, verbose=False, use_strict_trace=True)
+
     def finish(self):
         if self.closed:
             return
@@ -65,16 +89,16 @@ class TensorBoardBackend(Backend):
 class StdOutBackend(Backend):
 
     def __init__(self, filepath: Path, print_to_file=True) -> None:
-        logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] %(message)s")
+        log_formatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] %(message)s")
         self.rootLogger = logging.getLogger()
         self.rootLogger.setLevel(DEFAULT_LOGGER_LEVEL)
 
         self.consoleHandler = logging.StreamHandler()
-        self.consoleHandler.setFormatter(logFormatter)
+        self.consoleHandler.setFormatter(log_formatter)
         self.print_to_file = print_to_file
         if self.print_to_file:
             self.file_handler = logging.FileHandler(filepath)
-            self.file_handler.setFormatter(logFormatter)
+            self.file_handler.setFormatter(log_formatter)
             self.rootLogger.addHandler(self.file_handler)
         self.rootLogger.addHandler(self.consoleHandler)
         self.closed = False
@@ -87,6 +111,10 @@ class StdOutBackend(Backend):
         msg = ""
         for tag, value in values.items():
             msg += f"{tag}: {value:.3f}, "
+        self.rootLogger.log(level, msg)
+
+    def add_graph(self, model, input_to_model, level):
+        msg = f"Added graph of model."
         self.rootLogger.log(level, msg)
     
     def log(self, msg, level):
@@ -116,6 +144,10 @@ class JSONBackend(Backend):
         values = {**values, "global_step":_global_step}
         values_str = json.dumps(values) + "\n"
         self.file.write(values_str)
+
+    def add_graph(self, model, input_to_model, **kwargs):
+        """JSON format logging does not support graphs."""
+        pass
     
     def finish(self):
         if self.closed:
@@ -128,6 +160,12 @@ class JSONBackend(Backend):
 _backends: List[Backend] = [StdOutBackend(None, False)]
 
 def init(output_dir, backends):
+    """
+    Initialize logging.
+    Args:
+        output_dir: directory to save logs
+        backends: list of backends to use
+    """
     global _backends, _output_dir
     for backend in _backends:
         backend.finish()
@@ -150,19 +188,52 @@ def init(output_dir, backends):
 
 
 def log(msg, level=DEFAULT_LOG_LEVEL):
+    """
+    Log a message.
+    Args:
+        msg: message to be logged
+        level: logging level
+    """
     for backend in _backends:
         backend.log(msg, level)
 
 def add_scalar(tag, value, level=DEFAULT_SCALAR_LEVEL):
+    """
+    Add scalar to all backends.
+    Args:
+        tag: tag of the scalar
+        value: value of the scalar
+        level: logging level
+    """
     for backend in _backends:
         backend.add_scalar(tag, value, level=level)
 
 def add_dict(values: dict, level=DEFAULT_SCALAR_LEVEL):
+    """
+    Add dictionary of scalars to all backends.
+    Args:
+        values: dictionary of scalars
+        level: logging level
+    """
     for backend in _backends:
         backend.add_dict(values, level=level)
 
 
+def add_graph(model, input_example, level=DEFAULT_GRAPH_LEVEL):
+    """
+    Add graph of model to all backends.
+    Args:
+        model: model to be plotted
+        input_example: example input to model
+    """
+    for backend in _backends:
+        backend.add_graph(model, input_example, level=level)
+
+
 def finish():
+    """
+    Finish all backends.
+    """
     _write_metadata()
     for backend in _backends:
         backend.finish()

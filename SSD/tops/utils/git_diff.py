@@ -3,6 +3,13 @@ from pathlib import Path
 
 
 def get_diff_path(output_dir: Path):
+    """
+    Get the path to the git diff file.
+    Args:
+        output_dir: directory to save logs and checkpoints
+    Returns:
+        path to the git diff file
+    """
     if not output_dir.joinpath("diff.patch").is_file():
         return output_dir.joinpath("diff.patch")
     idx = 1
@@ -11,6 +18,11 @@ def get_diff_path(output_dir: Path):
     return output_dir.joinpath(f"diff{idx}.patch")
 
 def dump_git_diff(output_dir: Path):
+    """
+    Dump the git diff to a file.
+    Args:
+        output_dir: directory to dump the git diff file
+    """
     output_dir.mkdir(exist_ok=True, parents=True)
     diff_path = get_diff_path(output_dir)
     cmd = [
@@ -23,6 +35,6 @@ def dump_git_diff(output_dir: Path):
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as e :
         print(e)
-        pass
+
 
 

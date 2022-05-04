@@ -56,7 +56,10 @@ class SSD300(nn.Module):
             img: shape: NCHW
         """
         if not self.training:
+            # If not training, return predictions.
             return self.forward_test(img, **kwargs)
+
+        # If training, return loss.
         features = self.feature_extractor(img)
         return self.regress_boxes(features)
     
@@ -81,7 +84,9 @@ class SSD300(nn.Module):
                 boxes[:, [0, 2]] *= H
                 boxes[:, [1, 3]] *= W
             predictions.append((boxes, categories, scores))
-        return predictions
+
+        # Convert to tuple for traceability.
+        return tuple(predictions)
 
  
 def filter_predictions(

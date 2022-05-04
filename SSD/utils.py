@@ -318,6 +318,7 @@ def mean_average_precision(ground_truth_boxes, predicted_boxes):
 
 
 if __name__ == "__main__":
-    ground_truth_boxes = read_ground_truth_boxes()
-    predicted_boxes = read_predicted_boxes()
+    filepath = ""
+    ground_truth_boxes = read_ground_truth_boxes(filepath)
+    predicted_boxes = read_predicted_boxes(filepath)
     mean_average_precision(ground_truth_boxes, predicted_boxes)

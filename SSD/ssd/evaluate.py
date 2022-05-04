@@ -51,7 +51,7 @@ def calculate_class_aps(coco_gt, coco_dt, label_map):
 def evaluate(
         model,
         dataloader: torch.utils.data.DataLoader,
-        cocoGt: COCO,
+        coco_gt: COCO,
         gpu_transform: torch.nn.Module,
         label_map):
     """
@@ -62,7 +62,7 @@ def evaluate(
     for batch in tqdm.tqdm(dataloader, desc="Evaluating on dataset"):
         batch["image"] = tops.to_cuda(batch["image"])
         batch = gpu_transform(batch)
-        with torch.cuda.amp.autocast(enabled=tops.AMP()):
+        with torch.cuda.amp.autocast(enabled=tops.amp()):
             predictions = model(batch["image"], nms_iou_threshold=0.50, max_output=200,
                 score_threshold=0.05)
 
@@ -83,14 +83,14 @@ def evaluate(
     if final_results.shape[0] == 0:
         logger.log("WARNING! There were no predictions with score > 0.05. This indicates a bug in your code.")
         return dict()
-    cocoDt = cocoGt.loadRes(final_results)
-    E = COCOeval(cocoGt, cocoDt, iouType='bbox')
+    coco_dt = coco_gt.loadRes(final_results)
+    E = COCOeval(coco_gt, coco_dt, iouType='bbox')
     E.params.areaRng = [[0 ** 2, 1e5 ** 2], [0 ** 2, 16 ** 2], [16 ** 2, 32 ** 2], [32 ** 2, 1e5 ** 2]]
     E.evaluate()
     E.accumulate()
     E.summarize()
 
-    class_ap_stats = calculate_class_aps(cocoGt, cocoDt, label_map)
+    class_ap_stats = calculate_class_aps(coco_gt, coco_dt, label_map)
 
     stats_all_objects = {
         "mAP": E.stats[0], # same as mAP@

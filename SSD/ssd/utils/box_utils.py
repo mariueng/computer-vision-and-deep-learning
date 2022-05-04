@@ -18,17 +18,6 @@ def bbox_center_to_ltrb(boxes_center: Union[np.ndarray, torch.Tensor]):
         cy + 0.5*h,
     ), -1)
 
-def bbox_center_to_ltrb(boxes_center: Union[np.ndarray, torch.Tensor]):
-    cat = torch.stack if isinstance(boxes_center, torch.Tensor) else np.stack
-    assert boxes_center.shape[-1] == 4
-    cx, cy, w, h = [boxes_center[..., i] for i in range(4)]
-    return cat((
-        cx - 0.5*w,
-        cy - 0.5*h,
-        cx + 0.5*w,
-        cy + 0.5*h,
-    ), -1)
-
 def bbox_ltrb_to_center(boxes_lrtb: Union[np.ndarray, torch.Tensor]):
     cat = torch.stack if isinstance(boxes_lrtb, torch.Tensor) else np.stack
     assert boxes_lrtb.shape[-1] == 4
