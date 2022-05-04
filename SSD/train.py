@@ -112,7 +112,7 @@ def train(config_path: Path, evaluate_only: bool, verbose=False, save_graph=Fals
     dataloader_val = instantiate(cfg.data_val.dataloader)
 
     # Load gt boxes in validation set
-    coco_gt = dataloader_val.dataset.get_annotations_as_coco()
+    cocoGt = dataloader_val.dataset.get_annotations_as_coco()
 
     # Model to cuda if available
     model = tops.to_cuda(instantiate(cfg.model))
@@ -141,7 +141,7 @@ def train(config_path: Path, evaluate_only: bool, verbose=False, save_graph=Fals
         evaluate,
         model=model,
         dataloader=dataloader_val,
-        cocoGt=coco_gt,
+        cocoGt=cocoGt,
         gpu_transform=gpu_transform_val,
         label_map=cfg.label_map
     )
