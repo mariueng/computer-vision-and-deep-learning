@@ -13,6 +13,13 @@ from ssd.data.transforms import ToTensor
 
 
 def get_config(config_path):
+    """
+    Loads the config file and returns the config object.
+    Args:
+        config_path (str): path to the config file
+    Returns:
+        config (Config): config object
+    """
     cfg = utils.load_config(config_path)
     cfg.train.batch_size = 1
     cfg.data_train.dataloader.shuffle = False
@@ -21,6 +28,12 @@ def get_config(config_path):
 
 
 def get_trained_model(cfg):
+    """
+    Loads the model from the checkpoint.
+    Args:
+        cfg (Config): config object
+    Returns:
+        model (nn.Module): model object"""
     model = tops.to_cuda(instantiate(cfg.model))
     model.eval()
     ckpt = load_checkpoint(cfg.output_dir.joinpath("checkpoints"), map_location=tops.get_device())
@@ -29,6 +42,15 @@ def get_trained_model(cfg):
 
 
 def get_dataloader(cfg, dataset_to_visualize):
+    """
+    Returns the dataloader for the dataset to visualize.
+    Args:
+        cfg (Config): config object
+        dataset_to_visualize (str): name of the dataset to visualize
+    Returns:
+        dataloader (DataLoader): dataloader object
+    """
+
     # We use just to_tensor to get rid of all data augmentation, etc...
     to_tensor_transform = [
         L(ToTensor)()
@@ -45,12 +67,28 @@ def get_dataloader(cfg, dataset_to_visualize):
 
 
 def convert_boxes_coords_to_pixel_coords(boxes, width, height):
+    """
+    Converts the box coordinates to pixel coordinates.
+    Args:
+        boxes (np.ndarray): array of shape (N, 4) containing the box coordinates
+        width (int): width of the image
+        height (int): height of the image
+    Returns:
+        boxes (np.ndarray): array of shape (N, 4) containing the box coordinates in pixel coordinates
+    """
     boxes[:, [0, 2]] *= width
     boxes[:, [1, 3]] *= height
     return boxes.cpu().numpy()
 
 
 def convert_image_to_hwc_byte(image):
+    """
+    Converts the image to HWC byte.
+    Args:
+        image (torch.Tensor): image tensor
+    Returns:
+        image (np.ndarray): image in HWC byte
+    """
     first_image_in_batch = image[0]  # This is the only image in batch
     image_pixel_values = (first_image_in_batch * 255).byte()
     image_h_w_c_format = image_pixel_values.permute(1, 2, 0)
@@ -58,6 +96,15 @@ def convert_image_to_hwc_byte(image):
 
 
 def visualize_annotations_on_image(image, batch, label_map):
+    """
+    Visualizes the annotations on the image.
+    Args:
+        image (np.ndarray): image in HWC byte
+        batch (dict): batch dictionary
+        label_map (dict): class name map
+    Returns:
+        image_with_annotations (np.ndarray): image with annotations
+    """
     boxes = convert_boxes_coords_to_pixel_coords(batch["boxes"][0], batch["width"], batch["height"])
     labels = batch["labels"][0].cpu().numpy().tolist()
 
@@ -66,6 +113,18 @@ def visualize_annotations_on_image(image, batch, label_map):
 
 
 def visualize_model_predictions_on_image(image, img_transform, batch, model, label_map, score_threshold):
+    """
+    Visualizes the model predictions on the image.
+    Args:
+        image (np.ndarray): image in HWC byte
+        img_transform (torchvision.transforms): image transform
+        batch (dict): batch dictionary
+        model (nn.Module): model object
+        label_map (dict): class name map
+        score_threshold (float): score threshold
+    Returns:
+        image_with_model_predictions (np.ndarray): image with model predictions
+    """
     pred_image = tops.to_cuda(batch["image"])
     transformed_image = img_transform({"image": pred_image})["image"]
 
@@ -78,16 +137,42 @@ def visualize_model_predictions_on_image(image, img_transform, batch, model, lab
 
 
 def create_filepath(save_folder, image_id):
+    """
+    Creates the filepath for the image.
+    Args:
+        save_folder (str): save folder
+        image_id (int): image id
+    Returns:
+        filepath (str): filepath
+    """
     filename = "image_" + str(image_id) + ".png"
     return os.path.join(save_folder, filename)
 
 
 def create_comparison_image(batch, model, img_transform, label_map, score_threshold):
+    """
+    Creates the comparison image.
+    Args:
+        batch (dict): batch dictionary
+        model (nn.Module): model object
+        img_transform (torchvision.transforms): image transform
+        label_map (dict): class name map
+        score_threshold (float): score threshold
+    Returns:
+        concatenated_image (np.ndarray): concatenated image
+    """
+
+    # Get image in HWC format
     image = convert_image_to_hwc_byte(batch["image"])
+
+    # Get image with annotations
     image_with_annotations = visualize_annotations_on_image(image, batch, label_map)
+
+    # Get image with model predictions
     image_with_model_predictions = visualize_model_predictions_on_image(
         image, img_transform, batch, model, label_map, score_threshold)
 
+    # Concatenate images
     concatinated_image = np.concatenate([
         image,
         image_with_annotations,
@@ -97,6 +182,16 @@ def create_comparison_image(batch, model, img_transform, label_map, score_thresh
 
 
 def create_and_save_comparison_images(dataloader, model, cfg, save_folder, score_threshold, num_images):
+    """
+    Creates and saves the comparison images.
+    Args:
+        dataloader (DataLoader): dataloader object
+        model (nn.Module): model object
+        cfg (Config): config object
+        save_folder (str): save folder
+        score_threshold (float): score threshold
+        num_images (int): number of images
+    """
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
 
@@ -114,6 +209,14 @@ def create_and_save_comparison_images(dataloader, model, cfg, save_folder, score
 
 
 def get_save_folder_name(cfg, dataset_to_visualize):
+    """
+    Gets the save folder name.
+    Args:
+        cfg (Config): config object
+        dataset_to_visualize (str): dataset to visualize
+    Returns:
+        save_folder_name (str): save folder name
+    """
     return os.path.join(
         "performance_assessment",
         cfg.run_name,
