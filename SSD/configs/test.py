@@ -11,8 +11,8 @@ from tops.config import LazyCall as L
 from .utils import get_dataset_dir, get_output_dir
 
 train = dict(
-    batch_size=32,
-    amp=True,  # Automatic mixed precision
+    batch_size=1,
+    amp=False,  # Automatic mixed precision
     log_interval=20,
     seed=0,
     epochs=50,
@@ -41,7 +41,7 @@ anchors = L(AnchorBoxes)(
 
 ANCHORS = "${anchors}"
 
-backbone = L(backbones.basic.BasicModelExtended)(
+backbone = L(backbones.tester.TestModel)(
     output_channels=[128, 256, 128, 128, 64, 64],
     image_channels="${train.image_channels}",
     output_feature_sizes="${anchors.feature_sizes}"
