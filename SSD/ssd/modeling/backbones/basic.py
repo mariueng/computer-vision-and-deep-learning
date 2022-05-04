@@ -97,6 +97,7 @@ class BasicModel(torch.nn.Module):
                 f"Expected shape: {expected_shape}, got: {feature.shape[1:]} at output IDX: {idx}"
         assert len(out_features) == len(self.output_feature_shape),\
             f"Expected that the length of the outputted features to be: {len(self.output_feature_shape)}, but it was: {len(out_features)}"
+        #print(f'Type in basic: {type(out_features)}')
         return tuple(out_features)
 
 
@@ -270,3 +271,4 @@ class BasicModelExtended(BasicModel):
                 ),  # 64 x 1 x 8
             ),
         ])
+
