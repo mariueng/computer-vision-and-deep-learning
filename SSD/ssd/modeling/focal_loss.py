@@ -1,100 +1,76 @@
 import warnings
 from typing import Optional
 
-import torch.nn as nn
 import torch
 import torch.nn.functional as F
-from torch.nn import SmoothL1Loss
+from torch.nn import SmoothL1Loss, Parameter
 
 from typing import List
 
 
 """
-Implementation based on: https://github.com/clcarwin/focal_loss_pytorch/blob/e11e75bad957aecf641db6998a1016204722c1bb/focalloss.py#L6
+Implementation originally based on: https://github.com/kornia/kornia/blob/master/kornia/losses/focal.py
+
+Originally uses input and target, adapted to work with bbox_delta and confidences.
+
 """
-
-# Code based on: https://github.com/kornia/kornia/blob/master/kornia/losses/focal.py
-
-def validate_input(
-    input: torch.Tensor,
-    target: torch.Tensor,
-    alpha: float,
-    gamma: float = 2.0,
-    reduction: str = 'none',
-    eps: Optional[float] = None,
-    ) -> torch.Tensor:
-    if eps is not None and not torch.jit.is_scripting():
-        warnings.warn(
-            "`focal_loss` has been reworked for improved numerical stability "
-            "and the `eps` argument is no longer necessary",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    if not isinstance(input, torch.Tensor):
-        raise TypeError(f"Input type is not a torch.Tensor. Got {type(input)}")
-
-    if len(input.shape) < 2:
-        raise ValueError(f"Invalid input shape, we expect B x C x H x W. Got {input.shape}")
-
-    if input.size(0) != target.size(0):
-        raise ValueError(f"Input and target must have the same batch size. Got {input.size(0)} and {target.size(0)}")
-
-    n = input.size(0)
-    out_size = (n,) + input.size()[2:]
-    if target.size()[1:] != input.size()[2:]:
-        raise ValueError(f"Expected target size {out_size}. Got {target.size()}")
-
-    if input.device != target.device:
-        raise ValueError(f"Input and target must be on the same device. Got {input.device} and {target.device}")
 
 
 def focal_loss(
-    input: torch.Tensor,
-    target: torch.Tensor,
+    confs: torch.FloatTensor,
+    gt_labels: torch.FloatTensor,
     alpha: float,
     gamma: float = 2.0,
-    reduction: str = 'none',
-    eps: Optional[float] = None,
     ) -> torch.Tensor:
     """
     Compute the focal loss between `input` and `target`.
     Args:
-        input: A tensor of shape (N, C, H, W) representing the predictions
-            of the network.
-        target: A tensor of shape (N, H, W) representing the ground truth
-            labels.
-        alpha: A scalar multiplying alpha to the loss from positive examples.
-        gamma: A scalar modulating the loss from hard and easy examples.
-        reduction: The reduction to apply to the output.
-        eps: A scalar added to the denominator for numerical stability.
+        bbox_delta: [batch_size, 4, num_anchors]
+        confs: [batch_size, num_classes, num_anchors]
+        gt_bbox: [batch_size, num_gt, 4]
+        gt_labels: [batch_size, num_gt]
+        alpha: focal loss's alpha
+        gamma: focal loss's gamma
+        reduction: 'none' | 'mean' | 'sum'
+        eps: epsilon
     Returns:
-        A tensor containing the loss.
+        loss: [batch_size, num_classes, num_anchors]
     """
-    input_soft: torch.Tensor = F.softmax(input, dim=1)
-    log_input_soft: torch.Tensor = F.log_softmax(input, dim=1)
 
-    target_one_hot: torch.Tensor = one_hot(target, num_classes=input.shape[1], device=input.device, dtype=input.dtype)
+    num_classes = confs.shape[1]
+    print(f'Number of classes: {num_classes}')
 
+    # Calculate softmax and log softmax of confidences
+    input_soft: torch.Tensor = F.softmax(confs, dim=1)
+    print(f'Input softmax shape: {input_soft.shape}')
+    log_input_soft: torch.Tensor = F.log_softmax(confs, dim=1)
+    print(f'Log input softmax shape: {log_input_soft.shape}')
+
+    # One-hot encode ground truth labels
+    target_one_hot: torch.Tensor = one_hot(gt_labels, num_classes=input.shape[1], device=input.device, dtype=input.dtype)
+    print(f'Target one-hot shape: {target_one_hot.shape}')
+    target_one_hot = torch.transpose(target_one_hot, -1, -2)
+    print(f'Target one-hot shape: {target_one_hot.shape}')
+
+    # Calculate weights for each anchor
     weight = torch.pow(-input_soft + 1.0, gamma)
 
+    # Calculate focal losses
     focal = -alpha * weight * log_input_soft
     loss_tmp = torch.einsum('bc...,bc...->b...', (target_one_hot, focal))
 
-    if reduction == 'none':
-        loss = loss_tmp
-    elif reduction == 'mean':
-        loss = loss_tmp.mean()
-    elif reduction == 'sum':
-        loss = loss_tmp.sum()
-    else:
-        raise NotImplementedError(f"Reduction {reduction} is not implemented")
+    loss = loss_tmp.mean()
+
+    # Check that output is correct shape: [batch_size, num_classes, num_anchors]
+    print(f'Loss shape: {loss.shape}')
+    assert loss.shape == (confs.shape[0], confs.shape[1], confs.shape[2])
 
     return loss
 
 
-class FocalLoss(nn.Module):
+class FocalLoss(torch.nn.Module):
     def __init__(self,
+            anchors,
             alpha: float = 2,
             gamma: float = 0.25,
             reduction: str = 'none',
@@ -106,21 +82,71 @@ class FocalLoss(nn.Module):
         self.reduction: str = reduction
         self.eps: Optional[float] = eps
 
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        # Set scales for later calculations
+        self.scale_xy = 1.0 / anchors.scale_xy
+        self.scale_wh = 1.0 / anchors.scale_wh
+
+        # Get Smooth L1 Loss function
+        self.sl1_loss = SmoothL1Loss(reduction=self.reduction)
+        self.anchors = Parameter(anchors(order="xywh").transpose(0, 1).unsqueeze(dim = 0),
+                                 requires_grad=False)
+
+    def _loc_vec(self, loc):
         """
-        Perform focal loss on the input and target tensors.
+        Generate Location Vectors
         Args:
-            input: A tensor of shape (N, C, H, W) representing the predictions
-                of the network.
-            target: A tensor of shape (N, H, W) representing the ground truth
-                labels.
+            loc: [batch_size, num_anchors, 4]
         Returns:
-            A tensor of shape (N, C, H, W) representing the loss.
+            loc_vec: [batch_size, num_anchors, 4]
+        """
+        gxy = self.scale_xy*(loc[:, :2, :] - self.anchors[:, :2, :]) / self.anchors[:, 2:, ]
+        gwh = self.scale_wh*(loc[:, 2:, :] / self.anchors[:, 2:, :]).log()
+        return torch.cat((gxy, gwh), dim=1).contiguous()
+
+    def regression_loss(self, bbox_delta, gt_bbox, gt_labels):
+
+        pos_mask = (gt_labels > 0).unsqueeze(1).repeat(1, 4, 1)
+        bbox_delta = bbox_delta[pos_mask]
+        gt_locations = self._loc_vec(gt_bbox)
+        gt_locations = gt_locations[pos_mask]
+        num_pos = gt_locations.shape[0]/4
+        return F.smooth_l1_loss(bbox_delta, gt_locations, reduction="sum"), num_pos
+
+
+    def forward(self,
+                bbox_delta: torch.Tensor,
+                confs: torch.Tensor,
+                gt_bbox: torch.FloatTensor,
+                gt_labels: torch.LongTensor
+            ) -> torch.Tensor:
+        """
+        Perform loss calculations on the input and target tensors.
+        Args:
+            bbox_delta: [batch_size, 4, num_anchors]
+            confs: [batch_size, num_classes, num_anchors]
+            gt_bbox: [batch_size, num_anchors, 4]
+            gt_label = [batch_size, num_anchors]
+        Returns:
+            loss: [batch_size, num_classes, num_anchors]
         """
 
-        validate_input(input, target, self.alpha, self.gamma, self.reduction, self.eps)
+        # Compute same regression loss as before
+        regression_loss, num_pos = self.regression_loss(bbox_delta, gt_bbox, gt_labels)
 
-        return focal_loss(input, target, self.alpha, self.gamma, self.reduction, self.eps)
+        # Compute focal loss (new classification loss)
+        classification_loss = focal_loss(confs, gt_labels, self.alpha, self.gamma)
+
+        # Compute total loss
+        total_loss = regression_loss / num_pos + classification_loss / num_pos
+
+        # Log to tensorboard
+        to_log = dict(
+            regression_loss=regression_loss / num_pos,
+            classification_loss=classification_loss,
+            total_loss=total_loss
+        )
+
+        return total_loss, to_log
 
 
 def one_hot(
