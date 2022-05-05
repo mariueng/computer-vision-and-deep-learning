@@ -2,19 +2,7 @@ import torch
 import torchvision.models as models
 
 from typing import Tuple, List, OrderedDict
-
-from torch.utils.model_zoo import load_url
-from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.ops import FeaturePyramidNetwork
-
-
-model_urls = {
-    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
-    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
-    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
-    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
-    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth'
-}
 
 
 def load_resnet_model(model_name: str, pretrained: bool, **kwargs) -> torch.nn.Module:
@@ -23,25 +11,20 @@ def load_resnet_model(model_name: str, pretrained: bool, **kwargs) -> torch.nn.M
     :param model_name: Name of the model to load.
     :return: The loaded model.
     """
-    if model_name not in model_urls:
+
+    f = list(filter(lambda x: x.startswith('resnet'), dir(models)))
+
+    if model_name not in f:
         raise ValueError(f'Model {model_name} is not supported.')
 
-    num_classes = 1000
     if model_name == 'resnet18':
-        block=BasicBlock
-        layers=[2, 2, 2, 2]
-    elif model_name in ['resnet34', 'resnet50']:
-        block=Bottleneck
-        layers=[3, 4, 6, 3]
+        model = models.resnet18(pretrained=pretrained)
+    elif model_name == 'resnet34':
+        model = models.resnet34(pretrained=pretrained)
     else:
         print("Come on, give me a break")
         raise ValueError(f'Model {model_name} is overkill and you know it.')
 
-    model = models.ResNet(block=block, layers=layers, num_classes=num_classes, **kwargs)
-
-    if pretrained:
-        # old: torch.hub.load_state_dict_from_url(model_urls[model_name], progress=True)
-        model.load_state_dict(load_url(model_urls[model_name]), strict=False)
     return model
 
 class FPN(torch.nn.Module):
@@ -64,7 +47,7 @@ class FPN(torch.nn.Module):
         self.fpn_output_channels = 256
 
         # Implement FPN on top of a pre-trained backbone, e.g. ResNet-34
-        self.feature_extractor = models.resnet34(pretrained=True) #load_resnet_model(model, pretrained)
+        self.feature_extractor = load_resnet_model(model_name=model, pretrained=pretrained)
 
         # Additional layers
         self.additional_layers = torch.nn.ModuleList([
@@ -114,7 +97,7 @@ class FPN(torch.nn.Module):
         input_feat = self.additional_layers[0](x)  # 64 x 32 x 256
         out_features.append(input_feat)
 
-        # Pass through ResNet and retrieve all five layers
+        # ResNet layers
         out_feature = self.feature_extractor.layer2(input_feat)  # 128 x 16 x 128, p3 in RetinaNet
         out_features.append(out_feature)
 
@@ -124,6 +107,7 @@ class FPN(torch.nn.Module):
         out_feature = self.feature_extractor.layer4(out_feature)  # 512 x 4 x 32, p5 in RetinaNet
         out_features.append(out_feature)
 
+        # Additional layers
         out_feature = self.additional_layers[1](out_feature)  # 256 x 2 x 16, p6 in RetinaNet
         out_features.append(out_feature)
 
