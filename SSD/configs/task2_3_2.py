@@ -18,7 +18,7 @@ from tops.config import LazyCall as L
 from ssd.modeling import SSD300, FocalLoss
 
 loss_objective = L(FocalLoss)(
-    anchors,
+    anchors=anchors,
     alpha=2,
     gamma=0.25,
 )

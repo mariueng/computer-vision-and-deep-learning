@@ -37,8 +37,7 @@ def focal_loss(
         loss: [batch_size, num_classes, num_anchors]
     """
 
-    num_classes = confs.shape[1]
-    print(f'Number of classes: {num_classes}')
+    print(f'Number of classes: {confs.shape[1]}')
 
     # Calculate softmax and log softmax of confidences
     input_soft: torch.Tensor = F.softmax(confs, dim=1)
@@ -47,7 +46,7 @@ def focal_loss(
     print(f'Log input softmax shape: {log_input_soft.shape}')
 
     # One-hot encode ground truth labels
-    target_one_hot: torch.Tensor = one_hot(gt_labels, num_classes=input.shape[1], device=input.device, dtype=input.dtype)
+    target_one_hot: torch.Tensor = one_hot(gt_labels, num_classes=confs.shape[1], device=confs.device, dtype=confs.dtype)
     print(f'Target one-hot shape: {target_one_hot.shape}')
     target_one_hot = torch.transpose(target_one_hot, -1, -2)
     print(f'Target one-hot shape: {target_one_hot.shape}')
@@ -70,11 +69,11 @@ def focal_loss(
 
 class FocalLoss(torch.nn.Module):
     def __init__(self,
-            anchors,
-            alpha: float = 2,
-            gamma: float = 0.25,
-            reduction: str = 'none',
-            eps: Optional[float] = None
+                anchors,
+                alpha: float = 2,
+                gamma: float = 0.25,
+                reduction: str = 'none',
+                eps: Optional[float] = None
         ):
         super().__init__()
         self.alpha: float = alpha
@@ -99,8 +98,8 @@ class FocalLoss(torch.nn.Module):
         Returns:
             loc_vec: [batch_size, num_anchors, 4]
         """
-        gxy = self.scale_xy*(loc[:, :2, :] - self.anchors[:, :2, :]) / self.anchors[:, 2:, ]
-        gwh = self.scale_wh*(loc[:, 2:, :] / self.anchors[:, 2:, :]).log()
+        gxy = self.scale_xy * (loc[:, :2, :] - self.anchors[:, :2, :]) / self.anchors[:, 2:, ]
+        gwh = self.scale_wh * (loc[:, 2:, :] / self.anchors[:, 2:, :]).log()
         return torch.cat((gxy, gwh), dim=1).contiguous()
 
     def regression_loss(self, bbox_delta, gt_bbox, gt_labels):
@@ -129,6 +128,9 @@ class FocalLoss(torch.nn.Module):
         Returns:
             loss: [batch_size, num_classes, num_anchors]
         """
+
+        # Reshape to match bbox_delta
+        gt_bbox = gt_bbox.transpose(1, 2).contiguous()
 
         # Compute same regression loss as before
         regression_loss, num_pos = self.regression_loss(bbox_delta, gt_bbox, gt_labels)
