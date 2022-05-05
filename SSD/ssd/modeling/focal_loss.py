@@ -37,19 +37,12 @@ def focal_loss(
         loss: [batch_size, num_classes, num_anchors]
     """
 
-    print(f'Number of classes: {confs.shape[1]}')
-
     # Calculate softmax and log softmax of confidences
     input_soft: torch.Tensor = F.softmax(confs, dim=1)
-    print(f'Input softmax shape: {input_soft.shape}')
     log_input_soft: torch.Tensor = F.log_softmax(confs, dim=1)
-    print(f'Log input softmax shape: {log_input_soft.shape}')
 
     # One-hot encode ground truth labels
     target_one_hot: torch.Tensor = one_hot(gt_labels, num_classes=confs.shape[1], device=confs.device, dtype=confs.dtype)
-    print(f'Target one-hot shape: {target_one_hot.shape}')
-    target_one_hot = torch.transpose(target_one_hot, -1, -2)
-    print(f'Target one-hot shape: {target_one_hot.shape}')
 
     # Calculate weights for each anchor
     weight = torch.pow(-input_soft + 1.0, gamma)
@@ -58,11 +51,10 @@ def focal_loss(
     focal = -alpha * weight * log_input_soft
     loss_tmp = torch.einsum('bc...,bc...->b...', (target_one_hot, focal))
 
-    loss = loss_tmp.mean()
+    # Check that losses is correct shape: [batch_size, num_classes, num_anchors]
+    assert loss_tmp.shape == (confs.shape[0], confs.shape[1], confs.shape[2])
 
-    # Check that output is correct shape: [batch_size, num_classes, num_anchors]
-    print(f'Loss shape: {loss.shape}')
-    assert loss.shape == (confs.shape[0], confs.shape[1], confs.shape[2])
+    loss = loss_tmp.mean()  # There are several ways of doing this, see piazza
 
     return loss
 
@@ -139,7 +131,7 @@ class FocalLoss(torch.nn.Module):
         classification_loss = focal_loss(confs, gt_labels, self.alpha, self.gamma)
 
         # Compute total loss
-        total_loss = regression_loss / num_pos + classification_loss / num_pos
+        total_loss = regression_loss / num_pos + classification_loss
 
         # Log to tensorboard
         to_log = dict(
