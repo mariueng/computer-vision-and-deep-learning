@@ -4,11 +4,11 @@ from .anchor_encoder import AnchorEncoder
 from .ssd import filter_predictions
 
 """
-RetinaNet Head implemented into SSD model. 
+SSD model with RetinaNet head and improved weight initialization to account for class imbalance.
 """
 
 
-class SSD300DC(nn.Module):
+class SSD300DCIWI(nn.Module):
     def __init__(self, 
             feature_extractor: nn.Module,
             anchors,
@@ -16,25 +16,40 @@ class SSD300DC(nn.Module):
             num_classes: int):
         super().__init__()
         """
-            Implements the SSD network with shared deep convolutional nets as regression/classification heads.
+            Implements the SSD network with improved weight initialization.
         """
 
         self.feature_extractor = feature_extractor
         self.loss_func = loss_objective
         self.num_classes = num_classes
-        self.regression_heads = []
-        self.classification_heads = []
-        self.regression_heads = self._make_head(anchors.num_boxes_per_fmap, 4)
-        self.classification_heads = self._make_head(anchors.num_boxes_per_fmap, self.num_classes)
-
+        self.num_boxes_per_fmap = anchors.num_boxes_per_fmap
+        self.regression_heads = self._make_head(self.num_boxes_per_fmap, 4)
+        self.classification_heads = self._make_head(self.num_boxes_per_fmap, self.num_classes)
         self.anchor_encoder = AnchorEncoder(anchors)
         self._init_weights()
 
-    def _init_weights(self):
+    def _init_weights(self, π=0.99):
         layers = [*self.regression_heads, *self.classification_heads]
         for layer in layers:
             for param in layer.parameters():
                 if param.dim() > 1: nn.init.xavier_uniform_(param)
+
+        # Initialize all new conv layers except for the final one with bias=0 and a Gaussian weight fill with sigma=0.01.
+        for idx, layer in enumerate(layers[:-1]):
+            for param in layer.parameters():
+                print(f"Initializing {param.shape} in layer {idx}")
+                if param.dim() > 1:
+                    nn.init.normal_(param, 0, 0.01)
+
+        # For the final conv layer of the classification head, we set the bias initialization to b = - log ((1 - π) / π).
+        for idx, layer in enumerate(layers[-1:]):
+            for param in layer.parameters():
+                print(f"Initializing {param.shape} in layer {idx}")
+                if param.dim() > 1:
+                    nn.init.normal_(param, 0, 0.01)
+                    tensor = -torch.log(torch.tensor((1 - π) / π))
+                    param.data.fill_(tensor)
+
 
     def _make_head(self, num_boxes_per_fmap, k):
         """
