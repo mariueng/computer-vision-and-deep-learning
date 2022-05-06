@@ -30,26 +30,19 @@ class SSD300DCIWI(nn.Module):
 
     def _init_weights(self, π=0.99):
         layers = [*self.regression_heads, *self.classification_heads]
-        for layer in layers:
-            for param in layer.parameters():
-                if param.dim() > 1: nn.init.xavier_uniform_(param)
+        # for layer in layers:
+        #     for param in layer.parameters():
+        #         if param.dim() > 1: nn.init.xavier_uniform_(param)
 
         # Initialize all new conv layers except for the final one with bias=0 and a Gaussian weight fill with sigma=0.01.
-        for idx, layer in enumerate(layers[:-1]):
+        for layer in layers[:-1]:
             for param in layer.parameters():
-                print(f"Initializing {param.shape} in layer {idx}")
-                if param.dim() > 1:
-                    nn.init.normal_(param, 0, 0.01)
+                if param.dim() > 1: nn.init.normal_(param, 0, 0.01)
 
         # For the final conv layer of the classification head, we set the bias initialization to b = - log ((1 - π) / π).
-        for idx, layer in enumerate(layers[-1:]):
+        for layer in layers[-1:]:
             for param in layer.parameters():
-                print(f"Initializing {param.shape} in layer {idx}")
-                if param.dim() > 1:
-                    nn.init.normal_(param, 0, 0.01)
-                    tensor = -torch.log(torch.tensor((1 - π) / π))
-                    param.data.fill_(tensor)
-
+                if param.dim() > 1: nn.init.constant_(param, -torch.log(torch.tensor((1 - π) / π)))
 
     def _make_head(self, num_boxes_per_fmap, k):
         """
