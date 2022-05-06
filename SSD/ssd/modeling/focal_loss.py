@@ -1,17 +1,15 @@
 import warnings
-from typing import Optional
+from typing import Optional, List
 
 import torch
 import torch.nn.functional as F
 from torch.nn import SmoothL1Loss, Parameter
-
-from typing import List
-
+from torchvision.ops.focal_loss import sigmoid_focal_loss
 
 """
 Implementation originally based on: https://github.com/kornia/kornia/blob/master/kornia/losses/focal.py
 
-Originally uses input and target, adapted to work with bbox_delta and confidences.
+Originally uses input and target, adapted to work with bbox_delta and confidences as in the starter code.
 
 """
 
@@ -19,56 +17,58 @@ Originally uses input and target, adapted to work with bbox_delta and confidence
 def focal_loss(
     confs: torch.FloatTensor,
     gt_labels: torch.FloatTensor,
-    alpha: float,
+    alphas: torch.FloatTensor,
     gamma: float = 2.0,
     ) -> torch.Tensor:
     """
     Compute the focal loss between `input` and `target`.
     Args:
-        bbox_delta: [batch_size, 4, num_anchors]
         confs: [batch_size, num_classes, num_anchors]
-        gt_bbox: [batch_size, num_gt, 4]
-        gt_labels: [batch_size, num_gt]
+        gt_labels: [batch_size, num_anchors]
         alpha: focal loss's alpha
         gamma: focal loss's gamma
-        reduction: 'none' | 'mean' | 'sum'
-        eps: epsilon
     Returns:
         loss: [batch_size, num_classes, num_anchors]
     """
 
+    num_classes = confs.shape[1]
+
+    # Create alpha that matches the shape of the input tensor
+    alpha = alphas.repeat(confs.shape[2], 1).T  # [N, num_classes]
+    alpha = alpha.repeat(confs.shape[0], 1, 1)  # [N, num_classes, num_anchors]
+
+    # From here on, all shapes should be # [N, num_classes, num_anchors] to allow
+    # for element wise matrix multiplication. 
+
     # Calculate softmax and log softmax of confidences
-    input_soft: torch.Tensor = F.softmax(confs, dim=1)
-    log_input_soft: torch.Tensor = F.log_softmax(confs, dim=1)
+    p: torch.Tensor = F.softmax(confs, dim=1)
+    log_p: torch.Tensor = F.log_softmax(confs, dim=1)
 
-    # One-hot encode ground truth labels
-    target_one_hot: torch.Tensor = one_hot(gt_labels, num_classes=confs.shape[1], device=confs.device, dtype=confs.dtype)
-
-    # Calculate weights for each anchor
-    weight = torch.pow(-input_soft + 1.0, gamma)
+    # One-hot encode ground truth labels: 
+    y: torch.Tensor = one_hot_encoder(
+        gt_labels,
+        num_classes=num_classes,
+        device=confs.device,
+        dtype=confs.dtype
+    )
 
     # Calculate focal losses
-    focal = -alpha * weight * log_input_soft
-    loss_tmp = torch.einsum('bc...,bc...->bc...', (target_one_hot, focal))
+    focal_losses = -alpha * torch.pow(-p + 1.0, gamma) * log_p * y
 
-    # Check that losses is correct shape: [batch_size, num_classes, num_anchors]
-    assert loss_tmp.shape == (confs.shape[0], confs.shape[1], confs.shape[2])
+    return torch.sum(focal_losses)
 
-    loss = loss_tmp.mean()  # There are several ways of doing this, see piazza
-
-    return loss
 
 
 class FocalLoss(torch.nn.Module):
     def __init__(self,
                 anchors,
-                alpha: float = 2,
+                alpha: torch.Tensor = torch.tensor([[0.01, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]]),
                 gamma: float = 0.25,
                 reduction: str = 'none',
                 eps: Optional[float] = None
         ):
         super().__init__()
-        self.alpha: float = alpha
+        self.alpha: List[float] = alpha
         self.gamma: float = gamma
         self.reduction: str = reduction
         self.eps: Optional[float] = eps
@@ -95,7 +95,16 @@ class FocalLoss(torch.nn.Module):
         return torch.cat((gxy, gwh), dim=1).contiguous()
 
     def regression_loss(self, bbox_delta, gt_bbox, gt_labels):
-
+        """
+        Compute the regression loss between `bbox_delta` and `gt_bbox`.
+        Args:
+            bbox_delta: [batch_size, num_anchors, 4]
+            gt_bbox: [batch_size, num_anchors, 4]
+            gt_labels: [batch_size, num_anchors]
+        Returns:
+            loss: [batch_size, num_anchors]
+            num_pos: Number of positive anchors
+        """
         pos_mask = (gt_labels > 0).unsqueeze(1).repeat(1, 4, 1)
         bbox_delta = bbox_delta[pos_mask]
         gt_locations = self._loc_vec(gt_bbox)
@@ -121,29 +130,28 @@ class FocalLoss(torch.nn.Module):
             loss: [batch_size, num_classes, num_anchors]
         """
 
-        # Reshape to match bbox_delta
+        # Reshape to match bbox_delta: [batch_size, 4, num_ancors]
         gt_bbox = gt_bbox.transpose(1, 2).contiguous()
 
         # Compute same regression loss as before
-        regression_loss, num_pos = self.regression_loss(bbox_delta, gt_bbox, gt_labels)
+        regr_loss, num_pos = self.regression_loss(bbox_delta, gt_bbox, gt_labels)
 
         # Compute focal loss (new classification loss)
-        classification_loss = focal_loss(confs, gt_labels, self.alpha, self.gamma)
+        cls_loss = focal_loss(confs, gt_labels, self.alpha, self.gamma)
 
         # Compute total loss
-        total_loss = regression_loss / num_pos + classification_loss
+        total_loss = regr_loss / num_pos + cls_loss / num_pos
 
         # Log to tensorboard
         to_log = dict(
-            regression_loss=regression_loss / num_pos,
-            classification_loss=classification_loss,
+            regression_loss=regr_loss / num_pos,
+            classification_loss=cls_loss / num_pos,
             total_loss=total_loss
         )
 
         return total_loss, to_log
 
-
-def one_hot(
+def one_hot_encoder(
     labels: torch.Tensor,
     num_classes: int,
     device: Optional[torch.device] = None,
@@ -153,24 +161,13 @@ def one_hot(
     """Convert an integer label x-D tensor to a one-hot (x+1)-D tensor.
     Args:
         labels: tensor with labels of shape :math:`(N, H, W)`, where N is batch size.
-          Each value is an integer representing correct classification.
+            Each value is an integer representing correct classification.
         num_classes: number of classes in labels.
-        device: the desired device of returned tensor.
-        dtype: the desired data type of returned tensor.
     Returns:
         the labels in one hot tensor of shape :math:`(N, C, H, W)`
     """
-    if not isinstance(labels, torch.Tensor):
-        raise TypeError(f"Input labels type is not a torch.Tensor. Got {type(labels)}")
-
-    if labels.dtype != torch.int64:
-        raise ValueError(f"labels must be of the same dtype torch.int64. Got: {labels.dtype}")
-
-    if num_classes < 1:
-        raise ValueError("The number of classes must be bigger than one." " Got: {}".format(num_classes))
 
     shape = labels.shape
     one_hot = torch.zeros((shape[0], num_classes) + shape[1:], device=device, dtype=dtype)
 
     return one_hot.scatter_(1, labels.unsqueeze(1), 1.0) + eps
-        
