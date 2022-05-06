@@ -3,3 +3,4 @@ from .anchor_encoder import AnchorEncoder
 from .focal_loss import FocalLoss
 from .ssd_multibox_loss import SSDMultiboxLoss
 from .ssd import SSD300
+from .ssd_task2_3_3 import SSD300DC
