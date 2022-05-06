@@ -49,7 +49,7 @@ def focal_loss(
 
     # Calculate focal losses
     focal = -alpha * weight * log_input_soft
-    loss_tmp = torch.einsum('bc...,bc...->b...', (target_one_hot, focal))
+    loss_tmp = torch.einsum('bc...,bc...->bc...', (target_one_hot, focal))
 
     # Check that losses is correct shape: [batch_size, num_classes, num_anchors]
     assert loss_tmp.shape == (confs.shape[0], confs.shape[1], confs.shape[2])
