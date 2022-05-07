@@ -34,6 +34,7 @@ def focal_loss(
     num_classes = confs.shape[1]
 
     # Create alpha that matches the shape of the input tensor
+    alphas = alphas.to(device='cuda')
     alpha = alphas.repeat(confs.shape[2], 1).T  # [N, num_classes]
     alpha = alpha.repeat(confs.shape[0], 1, 1)  # [N, num_classes, num_anchors]
 
