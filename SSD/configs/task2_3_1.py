@@ -1,4 +1,4 @@
-from .task2_2 import (
+from .task2_2b import (
     train,
     optimizer,
     schedulers,
