@@ -129,8 +129,6 @@ class ResNetFPNFeatureExtractor(nn.Module):
         for _ in range(1, blocks):
             layers.append(block(self.inplanes, planes))
 
-        print(len(layers))
-
         return nn.Sequential(*layers)
 
     def forward(self, x):
