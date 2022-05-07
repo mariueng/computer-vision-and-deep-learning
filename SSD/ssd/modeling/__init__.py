@@ -1,6 +1,8 @@
 from .anchor_boxes import AnchorBoxes
 from .anchor_encoder import AnchorEncoder
-from .focal_loss import FocalLoss
+# from .focal_loss import FocalLoss
+from .new_focal_loss import FocalLoss
+# from .newer_fl import FocalLoss
 from .ssd_multibox_loss import SSDMultiboxLoss
 from .ssd import SSD300
 from .task2_3_3 import SSD300DC

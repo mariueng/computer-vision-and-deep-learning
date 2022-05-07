@@ -18,7 +18,7 @@ from tops.config import LazyCall as L
 from ssd.modeling import SSD300, FocalLoss
 
 loss_objective = L(FocalLoss)(
-    anchors=anchors,
+    anchors="${anchors}",
     alpha=torch.tensor([[0.01, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]]),
     gamma=0.25,
 )
