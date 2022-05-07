@@ -20,36 +20,27 @@ from ssd.data.transforms import (
     RandomHorizontalFlip,
     RandomSampleCrop,
 )
-from ssd.data.transforms import (
-    PhotometricDistort
-)
 from tops.config import LazyCall as L
 from .utils import get_dataset_dir
 import torchvision
 
 
-# New transformations added:
-# * Random horizontal flip
-# * Random sample crop
+# Removed transformations from task2_2.py:
 # * Photometric distort
 train_cpu_transform = L(torchvision.transforms.Compose)(transforms=[
     L(RandomSampleCrop)(),
-    L(PhotometricDistort)(),
     L(ToTensor)(),
     L(RandomHorizontalFlip)(),
     L(Resize)(imshape="${train.imshape}"),
     L(GroundTruthBoxesToAnchors)(anchors="${anchors}", iou_threshold=0.5),
 ])
 
-# Apply resize to validation data as well, as we expect it in the real world
 val_cpu_transform = L(torchvision.transforms.Compose)(transforms=[
     L(ToTensor)(),
     L(Resize)(imshape="${train.imshape}"),
 ])
 
-# Try adding photometric distortion to validation data as well.
 gpu_transform = L(torchvision.transforms.Compose)(transforms=[
-    #L(PhotometricDistort)(),
     L(Normalize)(mean=[0.4765, 0.4774, 0.2259], std=[0.2951, 0.2864, 0.2878])
 ])
 
