@@ -1,4 +1,7 @@
-from .task2_2_wo_pd import (train, optimizer, schedulers,
+from .task2_2 import (
+    train,
+    optimizer,
+    schedulers,
     loss_objective,
     model, 
     data_train,

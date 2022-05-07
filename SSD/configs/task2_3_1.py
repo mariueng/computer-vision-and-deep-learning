@@ -1,4 +1,7 @@
-from .task2_2_wo_pd import (train, optimizer, schedulers,
+from .task2_2 import (
+    train,
+    optimizer,
+    schedulers,
     loss_objective,
     model, 
     data_train,
@@ -9,7 +12,7 @@ from .task2_2_wo_pd import (train, optimizer, schedulers,
     label_map
 )
 from tops.config import LazyCall as L
-from ssd.modeling.backbones import FPN
+from ssd.modeling.backbones import ResNetFPN
 from ssd.modeling import SSD300, AnchorBoxes
 
 IMSHAPE = (128, 1024)
@@ -30,7 +33,7 @@ anchors = L(AnchorBoxes)(
     scale_size_variance=0.2
 )
 
-backbone = L(FPN)(
+backbone = L(ResNetFPN)(
     output_channels=[256, 256, 256, 256, 256, 256], #[64, 128, 256, 512, 256, 64],
     image_channels=3,
     output_feature_sizes="${anchors.feature_sizes}",
