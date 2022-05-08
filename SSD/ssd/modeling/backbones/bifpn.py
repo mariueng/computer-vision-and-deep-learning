@@ -106,9 +106,9 @@ class BiFPNBlock(nn.Module):
 
         out = [p3_out, p4_out, p5_out, p6_out, p7_out, p8_out]
 
-        print("Final out:")
-        for feat in out:
-            print(feat.shape)
+        # print("Final out:")
+        # for feat in out:
+        #      print(feat.shape)
         return tuple(out)
     
 class BiFPN(nn.Module):
@@ -118,13 +118,13 @@ class BiFPN(nn.Module):
             output_feature_sizes: List[Tuple[int]],
         ):
         super().__init__()
-        print("Input channels:")
-        print(input_channels)
+        # print("Input channels:")
+        # print(input_channels)
         self.input_channels = input_channels
         self.feature_size = feature_size
         self.output_feature_shape = output_feature_sizes
-        print("Output feature shapes:")
-        print(output_feature_sizes)
+        # print("Output feature shapes:")
+        # print(output_feature_sizes)
 
         # Feature extractor contains layers [c0, bn0, rl0, mp0 c1, c2, c3, c4, c5, c6]
         self.feature_extractor = load_feature_extractor(self.input_channels)
@@ -153,10 +153,10 @@ class BiFPN(nn.Module):
         self.bifpn = nn.Sequential(*bifpns)
 
     def forward(self, x):
-        print("Shape after resnet")
+        # print("Shape after resnet")
         for feature in self.feature_extractor[:4]:
             x = feature(x)
-            print(x.shape)
+            # print(x.shape)
 
         out_features = dict()
 
@@ -174,9 +174,9 @@ class BiFPN(nn.Module):
 
         out_features = [p3, p4, p5, p6, p7, p8]
 
-        print("Shape after Deptwise Conv Blocks: ")
-        for feature in out_features:
-            print(feature.shape)
+        # print("Shape after Deptwise Conv Blocks: ")
+        # for feature in out_features:
+        #     print(feature.shape)
 
         out_features = self.bifpn(out_features)
 
