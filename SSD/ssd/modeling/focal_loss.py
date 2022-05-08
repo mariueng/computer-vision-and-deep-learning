@@ -1,8 +1,7 @@
-from typing import Optional
-
 import torch
 import torch.nn.functional as F
 from torch.nn import SmoothL1Loss, Parameter
+from typing import List
 
 """
 Implementation originally based on: https://github.com/kornia/kornia/blob/master/kornia/losses/focal.py
@@ -14,13 +13,13 @@ Originally uses input and target, adapted to work with bbox_delta and confidence
 class FocalLoss(torch.nn.Module):
     def __init__(self,
                 anchors,
-                alphas: torch.Tensor,
-                gamma: float = 0.25,
+                alphas: List[float] = [0.01, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                gamma: float = 2.0,
         ):
         super().__init__()
         self.scale_xy = 1.0 / anchors.scale_xy
         self.scale_wh = 1.0 / anchors.scale_wh
-        self.alphas = torch.tensor(alphas).cuda()
+        self.alphas = torch.tensor(alphas).cuda() if torch.cuda.is_available() else torch.tensor(alphas)
         self.gamma = gamma
         self.anchors = Parameter(anchors(order="xywh").transpose(0, 1).unsqueeze(dim = 0), requires_grad=False)
 

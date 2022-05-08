@@ -19,8 +19,8 @@ from ssd.modeling import SSD300, FocalLoss
 
 loss_objective = L(FocalLoss)(
     anchors="${anchors}",
-    alpha=torch.tensor([[0.01, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]]),
-    gamma=0.25,
+    alphas=[0.01, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+    gamma=2,
 )
 
 model = L(SSD300)(
