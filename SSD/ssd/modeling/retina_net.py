@@ -53,7 +53,7 @@ class RetinaNet(nn.Module):
 
             # For the final conv layer of the regression_heads and classification_heads, we set the bias initialization to b = - log ((1 - π) / π).
             n = self.num_boxes_per_fmap[-1]
-            bias = torch.ones(n, 1) * torch.log(π * (self.num_classes - 1)/(1 - π)).flatten()
+            bias = torch.ones(n, 1) * torch.log(π * (self.num_classes - 1)/(1 - π)).flatten()  #TODO: test with 1 instead of self.num_classes
             self.classification_heads[-1][-1].bias.data[:n] = bias.flatten().clone()
             self.regression_heads[-1][-1].bias.data[:n] = bias.flatten().clone()
             # Old code: pretty sure this only sets the last convolutional layer.
