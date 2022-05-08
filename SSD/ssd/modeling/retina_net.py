@@ -4,45 +4,63 @@ from .anchor_encoder import AnchorEncoder
 from .ssd import filter_predictions
 
 """
-SSD model with RetinaNet head and improved weight initialization to account for class imbalance.
+RetinaNet Head implemented into SSD model.
+
+Contains code for Task 2.3.3 and 2.3.4. Only difference is running with or without
+the improved weight initalization.
+
 """
 
 
-class SSD300DCIWI(nn.Module):
+class RetinaNet(nn.Module):
     def __init__(self, 
             feature_extractor: nn.Module,
             anchors,
             loss_objective,
-            num_classes: int):
+            num_classes: int,
+            improved_weight_init: bool = False):
         super().__init__()
         """
-            Implements the SSD network with improved weight initialization.
+        Implements the SSD network with shared deep convolutional nets as 
+        regression/classification heads.
         """
 
         self.feature_extractor = feature_extractor
+        self.num_boxes_per_fmap = anchors.num_boxes_per_fmap
         self.loss_func = loss_objective
         self.num_classes = num_classes
-        self.num_boxes_per_fmap = anchors.num_boxes_per_fmap
+        self.improved_weight_init = improved_weight_init
         self.regression_heads = self._make_head(self.num_boxes_per_fmap, 4)
         self.classification_heads = self._make_head(self.num_boxes_per_fmap, self.num_classes)
+
         self.anchor_encoder = AnchorEncoder(anchors)
         self._init_weights()
 
-    def _init_weights(self, π=0.99):
+    def _init_weights(self):
         layers = [*self.regression_heads, *self.classification_heads]
-        # for layer in layers:
-        #     for param in layer.parameters():
-        #         if param.dim() > 1: nn.init.xavier_uniform_(param)
+        if not self.improved_weight_init:
+            # Normal weight init for Task 2.3.3.
+            for layer in layers:
+                for param in layer.parameters():
+                    if param.dim() > 1: nn.init.xavier_uniform_(param)
+        else:
+            # Improved weight initialization for Task 2.3.4.
+            π = .99
+            # Initialize all new conv layers except for the final one with bias=0 and a Gaussian weight fill with sigma=0.01.
+            for layer in layers[:-1]:
+                for param in layer.parameters():
+                    if param.dim() > 1: nn.init.normal_(param, 0, 0.01)
 
-        # Initialize all new conv layers except for the final one with bias=0 and a Gaussian weight fill with sigma=0.01.
-        for layer in layers[:-1]:
-            for param in layer.parameters():
-                if param.dim() > 1: nn.init.normal_(param, 0, 0.01)
+            # For the final conv layer of the regression_heads and classification_heads, we set the bias initialization to b = - log ((1 - π) / π).
+            n = self.num_boxes_per_fmap[-1]
+            bias = torch.ones(n, 1) * torch.log(π * (self.num_classes - 1)/(1 - π)).flatten()
+            self.classification_heads[-1][-1].bias.data[:n] = bias.flatten().clone()
+            self.regression_heads[-1][-1].bias.data[:n] = bias.flatten().clone()
+            # Old code: pretty sure this only sets the last convolutional layer.
+            # for layer in layers[-1:]:
+            #     for param in layer.parameters():
+            #         if param.dim() > 1: nn.init.constant_(param, -torch.log(torch.tensor((1 - π) / π)))
 
-        # For the final conv layer of the classification head, we set the bias initialization to b = - log ((1 - π) / π).
-        for layer in layers[-1:]:
-            for param in layer.parameters():
-                if param.dim() > 1: nn.init.constant_(param, -torch.log(torch.tensor((1 - π) / π)))
 
     def _make_head(self, num_boxes_per_fmap, k):
         """
