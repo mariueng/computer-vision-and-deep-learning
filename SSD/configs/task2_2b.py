@@ -27,6 +27,10 @@ import torchvision
 
 # Removed transformations from task2_2.py:
 # * Photometric distort
+
+# Notes for future work
+# * Would most likely be beneficiary to use more subtle augmentations such as those found in
+#   e.g. https://github.com/albumentations-team/albumentations
 train_cpu_transform = L(torchvision.transforms.Compose)(transforms=[
     L(RandomSampleCrop)(),
     L(ToTensor)(),
