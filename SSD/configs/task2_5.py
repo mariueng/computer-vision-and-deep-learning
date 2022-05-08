@@ -13,7 +13,7 @@ from .task2_4 import (
     label_map,
     anchors
 )
-from .utils import get_dataset_dir, get_output_dir
+from .utils import get_dataset_dir
 
 train.batch_size = 32
 train.epochs = 150
