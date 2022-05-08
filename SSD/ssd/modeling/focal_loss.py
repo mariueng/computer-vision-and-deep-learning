@@ -50,7 +50,7 @@ class FocalLoss(torch.nn.Module):
 
         # Repeat and reshape alpha values to match confs shape
         alphas: torch.Tensor = self.alphas.repeat(confs.shape[2], 1).T  # [batch_size, num_classes]
-        alphas: torch.Tensor = self.repeat(confs.shape[0], 1, 1)        # [batch_size, num_classes, num_anchors]
+        alphas: torch.Tensor = alphas.repeat(confs.shape[0], 1, 1)        # [batch_size, num_classes, num_anchors]
 
         # Calculate softmax and log softmax of confidences
         p: torch.Tensor     = F.softmax(confs, dim=1)
