@@ -30,7 +30,7 @@ class DepthwiseConvBlock(nn.Module):
         
         
         self.bn = nn.BatchNorm2d(out_channels, momentum=0.9997, eps=4e-5)
-        self.act = nn.ReLU()
+        self.act = nn.ReLU(inplace=True)
         
     def forward(self, inputs):
         x = self.depthwise(inputs)
@@ -46,7 +46,7 @@ class ConvBlock(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
         self.bn = nn.BatchNorm2d(out_channels, momentum=0.9997, eps=4e-5)
-        self.act = nn.ReLU()
+        self.act = nn.ReLU(inplace=True)
 
     def forward(self, inputs):
         x = self.conv(inputs)
@@ -76,10 +76,10 @@ class BiFPNBlock(nn.Module):
         # TODO: Init weights
         self.w1 = nn.Parameter(torch.Tensor(2, 4))
         self.w1.requires_grad = True
-        self.w1_relu = nn.ReLU()
+        self.w1_relu = nn.ReLU(inplace=True)
         self.w2 = nn.Parameter(torch.Tensor(3, 4))
         self.w2.requires_grad = True
-        self.w2_relu = nn.ReLU()
+        self.w2_relu = nn.ReLU(inplace=True)
     
     def forward(self, inputs):
         # Inputs here have been passed through the feature extractor.
@@ -203,15 +203,15 @@ def load_feature_extractor(input_channels):
     additional_layers = nn.ModuleList([
         nn.Sequential(
             nn.Conv2d(input_channels[3], input_channels[4], kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(input_channels[4], input_channels[4], kernel_size=2, stride=2, padding=0),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
         ),
         nn.Sequential(
             nn.Conv2d(input_channels[4], input_channels[5], kernel_size=2, stride=1, padding=1),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(input_channels[5], 64, kernel_size=2, stride=2, padding=0),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
         ),
     ])
     return nn.Sequential(*pretrained_layers, *additional_layers)
