@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from backbones import BiFPN, ResNetFPN
 from .anchor_encoder import AnchorEncoder
 from .ssd import filter_predictions
 
@@ -64,7 +65,14 @@ class RetinaNet(nn.Module):
             List of convolutional heads.
         """
         layers = []
-        fpn_outputs = 256
+
+        # This is 256 for current FPN backbone, and 64 for BiFPN backbone.
+        if isinstance(self.feature_extractor, ResNetFPN):
+            fpn_outputs = 256
+        elif isinstance(self.feature_extractor, BiFPN):
+            fpn_outputs = 64
+        else:
+            raise ValueError("Unknown backbone type. Unable to set Feature pyramid outputs.")
 
         # Matching number of anchor boxes to the number of feature maps.
         for num_boxes in num_boxes_per_fmap:
