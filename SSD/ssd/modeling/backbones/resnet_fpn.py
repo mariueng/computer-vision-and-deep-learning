@@ -198,7 +198,8 @@ class ResNetFPNFeatureExtractor(nn.Module):
                                        'whose dimensions in the checkpoint are {}.'
                                        .format(name, own_state[name].size(), param.size()))
             else:
-                print('NAME IS NOT IN OWN STATE::>' + name)
+                #print('NAME IS NOT IN OWN STATE::>' + name)
+                pass
 
 
 class ResNetFPN(nn.Module):
