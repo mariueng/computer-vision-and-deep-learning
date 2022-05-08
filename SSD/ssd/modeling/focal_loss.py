@@ -57,12 +57,7 @@ class FocalLoss(torch.nn.Module):
         log_p: torch.Tensor = F.log_softmax(confs, dim=1)
 
         # One-hot encode ground truth labels: 
-        y: torch.Tensor = F.one_hot(
-            gt_labels,
-            num_classes=num_classes,
-            device=confs.device,
-            dtype=confs.dtype
-        )
+        y: torch.Tensor = F.one_hot(gt_labels, num_classes=num_classes)
         y = torch.transpose(y, -1, -2)
 
         # Calculate focal losses
