@@ -1,4 +1,4 @@
-from .task2_3_1 import (
+from .task2_3_2 import (
     train,
     optimizer,
     schedulers,
@@ -14,12 +14,14 @@ from .task2_3_1 import (
     loss_objective
 )
 from tops.config import LazyCall as L
-from ssd.modeling import SSD300DC
+from ssd.modeling import RetinaNet
 
 
-model = L(SSD300DC)(
+# Task 2.3.3, shared conv heads but no improved weight init.
+model = L(RetinaNet)(
     feature_extractor="${backbone}",
     anchors="${anchors}",
     loss_objective="${loss_objective}",
-    num_classes= 8 + 1  # Add 1 for background
+    num_classes= 8 + 1,
+    improved_weight_init = False
 )
