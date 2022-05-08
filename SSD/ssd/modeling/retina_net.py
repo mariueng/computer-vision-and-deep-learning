@@ -43,23 +43,20 @@ class RetinaNet(nn.Module):
             for layer in layers:
                 for param in layer.parameters():
                     if param.dim() > 1: nn.init.xavier_uniform_(param)
-        else:
-            # Improved weight initialization for Task 2.3.4.
-            π = torch.tensor(.99)
-            # Initialize all new conv layers except for the final one with bias=0 and a Gaussian weight fill with sigma=0.01.
-            for layer in layers[:-1]:
-                for param in layer.parameters():
-                    if param.dim() > 1: nn.init.normal_(param, 0, 0.01)
+        # else:
+        # Improved weight initialization for Task 2.3.4.
+        π = torch.tensor(.99)
+        # Initialize all new conv layers except for the final one with bias=0 and a Gaussian weight fill with sigma=0.01.
+        # TODO: If results poor, try removing this one and else condition.
+        # for layer in layers[:-1]:
+        #     for param in layer.parameters():
+        #         if param.dim() > 1: nn.init.normal_(param, 0, 0.01)
 
-            # For the final conv layer of the regression_heads and classification_heads, we set the bias initialization to b = - log ((1 - π) / π).
-            n = torch.tensor(self.num_boxes_per_fmap[-1])
-            bias = torch.ones(n, 1) * torch.log(π * (self.num_classes - 1)/(1 - π)).flatten()  #TODO: test with 1 instead of self.num_classes
-            self.classification_heads[-1][-1].bias.data[:n] = bias.flatten().clone()
-            self.regression_heads[-1][-1].bias.data[:n] = bias.flatten().clone()
-            # Old code: pretty sure this only sets the last convolutional layer.
-            # for layer in layers[-1:]:
-            #     for param in layer.parameters():
-            #         if param.dim() > 1: nn.init.constant_(param, -torch.log(torch.tensor((1 - π) / π)))
+        # For the final conv layer of the regression_heads and classification_heads, we set the bias initialization to b = - log ((1 - π) / π).
+        n = torch.tensor(self.num_boxes_per_fmap[-1])
+        b = torch.ones(n, 1) * torch.log(π * (self.num_classes - 1)/(1 - π)).flatten()  #TODO: test with 1 instead of self.num_classes
+        self.classification_heads[-1][-1].bias.data[:n] = b.clone()
+        self.regression_heads[-1][-1].bias.data[:n] = b.clone()
 
 
     def _make_head(self, num_boxes_per_fmap, k):
