@@ -1,5 +1,3 @@
-import torch
-
 from .task2_3_1 import (
     train,
     optimizer,
