@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from backbones import BiFPN, ResNetFPN
+from .backbones import BiFPN, ResNetFPN
 from .anchor_encoder import AnchorEncoder
 from .ssd import filter_predictions
 
