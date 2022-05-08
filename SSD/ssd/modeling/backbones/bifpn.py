@@ -75,8 +75,10 @@ class BiFPNBlock(nn.Module):
 
         # TODO: Init weights
         self.w1 = nn.Parameter(torch.Tensor(2, 4))
+        self.w1.requires_grad = True
         self.w1_relu = nn.ReLU()
         self.w2 = nn.Parameter(torch.Tensor(3, 4))
+        self.w2.requires_grad = True
         self.w2_relu = nn.ReLU()
     
     def forward(self, inputs):
